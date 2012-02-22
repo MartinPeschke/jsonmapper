@@ -29,12 +29,12 @@ import copy
 
 from calendar import timegm
 from datetime import date, datetime, time
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_DOWN
 from time import strptime, struct_time
 
 
 __all__ = ['Mapping', 'Field', 'TextField', 'FloatField',
-           'IntegerField', 'LongField', 'BooleanField', 'DecimalField',
+           'IntegerField', 'LongField', 'BooleanField', 'DecimalField','PictureField', 'BaseUnitField'
            'DateField', 'DateTimeField', 'TimeField', 'DictField', 'ListField',
            'TypedField',
            ]
@@ -179,7 +179,6 @@ class TextField(Field):
     """Mapping field for string values."""
     _to_python = unicode
 
-
 class FloatField(Field):
     """Mapping field for float values."""
     _to_python = float
@@ -189,6 +188,14 @@ class IntegerField(Field):
     """Mapping field for integer values."""
     _to_python = int
 
+    
+class BaseUnitField(Field):
+    """Mapping field for integer values."""
+    def _to_python(self, value):
+        return Decimal(float(value)/100).quantize(Decimal('.01'), rounding=ROUND_HALF_DOWN)
+
+    def _to_json(self, value):
+        return int(value*100)
 
 class LongField(Field):
     """Mapping field for long integer values."""
@@ -199,6 +206,18 @@ class BooleanField(Field):
     """Mapping field for boolean values."""
     _to_python = bool
 
+    
+
+class PictureField(Field):
+    """Mapping field for decimal values."""
+    class Picture(unicode):
+      def getPath(self, request):
+        if self.startswith("http"):
+          return self
+        else:
+          g = request.registry.settings["g"]
+          return g.getStaticUrl(self)
+    _to_python = Picture
 
 class DecimalField(Field):
     """Mapping field for decimal values."""
@@ -349,6 +368,9 @@ class DictField(Field):
         if not isinstance(value, Mapping):
             value = self.mapping(**value)
         return value.unwrap()
+        
+        
+
 
 
 class TypedField(Field):
