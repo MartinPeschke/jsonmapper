@@ -1,4 +1,5 @@
 import simplejson, datetime
+from itertools import izip_longest
 from jsonmapper import Mapping, TextField, BaseUnitField, IntegerField, PictureField, DictField, DateTimeField, TypedField
 
 
@@ -85,11 +86,20 @@ assert g.isExpired() == True
 assert g.sender.name == "Grant Hutchinson"
 assert g.recipient.name == "Mapa Technorac"
 assert g.thankyou == None
-print g.unwrap()
+assert str(g.created) == '2012-02-17 19:12:37'
+assert g.created.year == 2012
 
+
+
+
+def grouper(n, iterable, fillvalue=None):
+    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(*args, fillvalue=fillvalue)
 
 class CardDetails(Mapping):
   type = TextField()
+  number = TextField(name='card_number')
   def getSavedGroupedDetails(self, no):
     self._cc_groupings = list(map("".join, grouper(4, self.number, " ")))
     return self._cc_groupings[no]
@@ -127,5 +137,9 @@ class User(Mapping):
   def hasSavedDetails(self):
     return self.saved_card_details is not None
 
-print User()
-print User().isAnon()
+assert User().isAnon() == True
+u = User.wrap({"id":"254","access_token":"AAADipxqvveoBAAfcvgGqVshOj03XcarNAijDZCqz45KZCHNL7MKK5nw41n4luNQjNneTtmqkBGUVOFSRaM1ht6RZCV0LjSDkTpaD9VlFgZDZD","user_token":"B6FBC0F1-04E5-40A4-AE1D-4D4B40369BAB","name":"Mapa Technorac","facebook_id":"100000924808399","email":"martin.peschke@gmx.net","picture":"http://graph.facebook.com/100000924808399/picture","SavedDetails":{"card_number":"xxxxxxxxxxxx002","type":"AMEX"}})
+assert u.saved_card_details.getSavedGroupedDetails(0) == 'xxxx'
+assert u.saved_card_details.getSavedGroupedDetails(1) == 'xxxx'
+assert u.saved_card_details.getSavedGroupedDetails(2) == 'xxxx'
+assert u.saved_card_details.getSavedGroupedDetails(3) == '002 '

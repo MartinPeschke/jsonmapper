@@ -135,6 +135,7 @@ class Mapping(object):
 
     @classmethod
     def build(cls, **d):
+        """ build an anonymous mapping on the fly"""
         fields = {}
         for attrname, attrval in d.items():
             if not attrval.name:
