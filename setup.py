@@ -6,18 +6,21 @@
 #
 # This software is licensed as described in the file COPYING, which
 # you should have received as part of this distribution.
+# most of the code from Matt Good, https://github.com/mgood/jsonmapper
+
 
 from setuptools import setup
 
 
 setup(
-    name = 'JSONMapper',
-    version = '0.1',
-    description = '',
+    name = 'JSONMapperHGMMPFork',
+    version = '0.12',
+    description = "Mapping JSON to objects and vice versa, this is a product of Christopher Lenz and Matthew Good with slight modifications",
     long_description = '',
-    author = 'Matt Good',
-    author_email = 'matt@matt-good.net',
+    author = 'Martin Peschke',
+    author_email = 'martin@per-4.com',
+    requires=['simplejson', 'httplib2'],
     license = 'BSD',
-    url = '',
+    url = 'https://github.com/MartinPeschke/jsonmapper',
     packages = ['jsonmapper'],
 )
