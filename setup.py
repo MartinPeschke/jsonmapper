@@ -23,4 +23,5 @@ setup(
     license = 'BSD',
     url = 'https://github.com/MartinPeschke/jsonmapper',
     packages = ['jsonmapper'],
+    package_dir={'templates': 'jsonmapper/templates'}
 )
