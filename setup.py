@@ -14,7 +14,7 @@ from setuptools import setup
 
 setup(
     name = 'JSONMapperHGMMPFork',
-    version = '0.15',
+    version = '0.17',
     description = "Mapping JSON to objects and vice versa, this is a product of Christopher Lenz and Matthew Good with slight modifications",
     long_description = '',
     author = 'Martin Peschke',
@@ -23,5 +23,5 @@ setup(
     license = 'BSD',
     url = 'https://github.com/MartinPeschke/jsonmapper',
     packages = ['jsonmapper'],
-    package_dir={'templates': 'jsonmapper/templates'}
+    data_files=[('jsonmapper/templates', ['jsonmapper/templates/forms.html'])]
 )
