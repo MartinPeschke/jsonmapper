@@ -25,6 +25,33 @@
   %endif
 </%def>
 
+<%def name="renderFormLine(field_id_name, field, props, values, errors)">
+  <div class="control-group${" error" if field in errors else ""}">
+    <label class="control-label" for="${field_id_name}">${props.html_label}</label>
+    <div class="controls">
+      ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
+      %if field in errors:
+        <span class="help-inline">${errors[field]}</span>
+      %endif
+    </div>
+  </div>
+</%def>
+
+
+<%def name="buildsubform(key, position, schema, values, errors)">
+  <${schema.html_tag} class="embedded-form well ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
+  <span class="control-number">${position+1}</span>
+  %for i, field in enumerate(schema.form_order):
+    <% 
+      props = schema.fields[field]
+      field_id_name = "{}-{}.{}".format(key, position, field) 
+    %>
+    ${self.renderFormLine(field_id_name, field, props, values, errors)}
+  %endfor
+  </${schema.html_tag}>
+</%def>
+
+
 
 <%def name="buildform(schema, values, errors)">
 <%
@@ -39,19 +66,21 @@
       <fieldset>
         <legend>${caller.header()}</legend>
         %for i, field in enumerate(schema.form_order):
-        <% 
-          props = schema.fields[field]
-          field_id_name = "{}.{}".format(schema.form_id, field)
-        %>
-        <div class="control-group${" error" if field in errors else ""}">
-          <label class="control-label" for="${field_id_name}">${props.html_label}</label>
-          <div class="controls">
-            ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
-            %if field in errors:
-              <span class="help-inline">${errors[field]}</span>
-            %endif
-          </div>
-        </div>
+          <% 
+            props = schema.fields[field]
+            field_id_name = "{}.{}".format(schema.form_id, field)
+          %>
+          
+          %if hasattr(props, "validators") and len(props.validators) > 0:
+            %for j, (values_, errors_) in enumerate(zip(values.get(field, [{}]), errors.get(field, [{}]))):
+              %for subschema in props.validators:
+                ${self.buildsubform(field_id_name, j, subschema, values_, errors_)}
+              %endfor
+            %endfor
+            <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">add one more</a></div>
+          %else:
+            ${self.renderFormLine(field_id_name, field, props, values, errors)}
+          %endif
         %endfor
         <div class="form-actions">
           ${caller.footer()}
@@ -75,4 +104,22 @@
       }
     });
   });
+  ${root}.on({"click": function(e){
+    var $target = $(e.target)
+      , templ = $("#template-"+$target.attr("_field_key"))
+      , new_node = templ.clone().removeAttr("id")
+      , new_position = parseInt($target.attr("_field_position"), 10) + 1
+      , inc = function(prop){return prop.replace(/-[0-9]+\./g, "-"+new_position+".")};
+    new_node.find("label").each(function(index, elem){
+      elem = $(elem); elem.attr("for", inc(elem.attr("for")));
+    });
+    new_node.find("input,select,textarea").each(function(index, elem){
+      elem = $(elem); elem.attr("id", inc(elem.attr("id"))); elem.attr("name", inc(elem.attr("name")));
+    });    
+    new_node.find(".control-number").html(new_position+1);
+    $target.attr("_field_position", new_position);
+    $target.closest(".add-more").before(new_node);
+    new_node.slideDown();
+    
+  }}, ".add-more-listitem");
 </%def>

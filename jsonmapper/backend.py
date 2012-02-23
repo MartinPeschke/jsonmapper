@@ -12,13 +12,14 @@ class DBMessage(Exception):
 class DBException(Exception):pass
 
 class RemoteProc(object):
-  def __init__(self, remote_path, method, root_key, result_cls):
+  def __init__(self, remote_path, method, root_key, result_cls = None):
     self.remote_path = remote_path
     self.method      = method
     self.root_key    = root_key
     self.result_cls  = result_cls  
   def __call__(self, backend, data):
-    return self.result_cls.wrap(backend(self.root_key, url=self.remote_path, method=self.method, data=data))
+    result = backend(self.root_key, url=self.remote_path, method=self.method, data=data)
+    return self.result_cls.wrap(result) if self.result_cls else True
 
 
 class Backend(object):
@@ -44,7 +45,7 @@ class Backend(object):
     result = simplejson.loads(content)
     if result['status'] != 0: 
         raise DBException("Status: {status} Reason: {errorMessage}".format(**result))
-    elif result.get('db_message'):
+    elif result.get('dbMessage'):
         raise DBMessage(result['dbMessage'], None)
     else: 
       return result

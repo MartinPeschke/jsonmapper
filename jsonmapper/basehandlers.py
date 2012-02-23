@@ -29,11 +29,13 @@ class FullValidatedFormHandler(object):
   def POST(self):
     req = self.request
     if req.params['token'] != req.session.get_csrf_token():
-      raise HTTPUnauthorized("CSRF Token missing or wrong.")
+      self.request.session.new_csrf_token()
+      return self.result
     return self.validate_form()
 
   def validate_form(self):
     values = variable_decode(self.request.params)
+    log.debug(values)
     try:
       ### determine actual form used in this submission
       schema_id = values['type']
@@ -43,7 +45,7 @@ class FullValidatedFormHandler(object):
     try:
       form_result = schema.to_python(values[schema_id], state=self.request)
     except Invalid, error:
-      log.info(error)
+      log.info(error.error_dict)
       self.result['values'][schema_id] = error.value or {}
       self.result['errors'][schema_id] = error.error_dict or {}
       self.request.response.status_int = 401
