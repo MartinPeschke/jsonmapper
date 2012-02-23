@@ -43,8 +43,8 @@ class Backend(object):
     log.debug("RESULT: %s", content[:5000])
     result = simplejson.loads(content)
     if result['status'] != 0: 
-        raise DBException("Status: {status} Reason: {error_message}".format(**result))
+        raise DBException("Status: {status} Reason: {errorMessage}".format(**result))
     elif result.get('db_message'):
-        raise DBMessage(result['db_message'], None)
+        raise DBMessage(result['dbMessage'], None)
     else: 
       return result
