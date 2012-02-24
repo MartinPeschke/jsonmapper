@@ -1,9 +1,20 @@
-﻿
+﻿<%!
+  from itertools import izip_longest
+%>
+
+
 <%def name="renderControl(id_name, value, props)" >
-  %if props.html_type == "checkbox":
+  %if props.html_type == "select":
+    <select class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+          id="${id_name}" name="${id_name}">
+      %for key, value in props.getItems(request):
+        <option name="${key}">${value}</option>
+      %endfor
+    </select>
+  %elif props.html_type == "checkbox":
     <label class="checkbox">
       ${props.html_extra_label}
-      <input \
+      <input class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
         type="checkbox" \
         id="${id_name}" \
         name="${id_name}" \
@@ -11,8 +22,7 @@
         ${"required" if props.required else ""}>
     </label>
   %else:
-      <input \
-        class="${getattr(props, 'classes', 'input-xlarge')} ${'focused' if i==0 else ""}" \
+      <input class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
         id="${id_name}" \
         name="${id_name}" \
         type="${props.html_type}" \
@@ -37,16 +47,27 @@
   </div>
 </%def>
 
-
-<%def name="buildsubform(key, position, schema, values, errors)">
-  <${schema.html_tag} class="embedded-form well ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
+<%def name="buildListSubform(key, position, schema, values, errors)">
+  <${schema.html_tag} class="form-embedded ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
   <span class="control-number">${position+1}</span>
   %for i, field in enumerate(schema.form_order):
     <% 
       props = schema.fields[field]
       field_id_name = "{}-{}.{}".format(key, position, field) 
     %>
-    ${self.renderFormLine(field_id_name, field, props, values, errors)}
+    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", {}))}
+  %endfor
+  </${schema.html_tag}>
+</%def>
+
+<%def name="buildSubform(key, schema, values, errors)">
+  <${schema.html_tag} class="${schema.html_classes}">
+  %for i, field in enumerate(schema.form_order):
+    <% 
+      props = schema.fields[field]
+      field_id_name = "{}.{}".format(key, field) 
+    %>
+    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", {}))}
   %endfor
   </${schema.html_tag}>
 </%def>
@@ -58,26 +79,32 @@
   values = values[schema.form_id]
   errors = errors[schema.form_id]
 %>
-
-   <form method="post" class="form-horizontal" id="${schema.form_id}">
+   <form method="post" class="form-horizontal form-validated" id="${schema.form_id}">
       <input type="hidden" name="type" value="${schema.form_id}"/>
       <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
       <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
       <fieldset>
         <legend>${caller.header()}</legend>
+        %if hasattr(caller, 'headparagraph'):
+          <div class="sublegend">${caller.headparagraph()}</div>
+        %endif
         %for i, field in enumerate(schema.form_order):
           <% 
             props = schema.fields[field]
             field_id_name = "{}.{}".format(schema.form_id, field)
           %>
           
-          %if hasattr(props, "validators") and len(props.validators) > 0:
-            %for j, (values_, errors_) in enumerate(zip(values.get(field, [{}]), errors.get(field, [{}]))):
+          %if props.repeating == True and isinstance(props, formencode.ForEach):
+            <div class="form-embedded-wrapper">
+            %for j, (values_, errors_) in enumerate(izip_longest(values.get(field, [{}]), getattr(errors.get(field), "error_list", []), fillvalue = {})):
               %for subschema in props.validators:
-                ${self.buildsubform(field_id_name, j, subschema, values_, errors_)}
+                ${self.buildListSubform(field_id_name, j, subschema, values_, errors_)}
               %endfor
             %endfor
             <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">add one more</a></div>
+            </div>
+          %elif props.repeating == False and isinstance(props, formencode.Schema):
+            ${self.buildSubform(field_id_name, props, values.get(field, {}), errors.get(field, {}))}
           %else:
             ${self.renderFormLine(field_id_name, field, props, values, errors)}
           %endif
@@ -92,7 +119,17 @@
 
 
 <%def name="buildValidators(root)">
-  ${root}.find("form").each(function(index, form){
+  %if request._LOCALE_ == 'de':
+    $.validator.methods.range = function (value, element, param) {
+      var globalizedValue = value.replace(",", ".");
+      return this.optional(element) || (globalizedValue >= param[0] && globalizedValue <= param[1]);
+    }
+    $.validator.methods.number = function (value, element) {
+      return this.optional(element) || /^-?(?:\d+|\d{1,3}(?:[\s\.,]\d{3})+)(?:[\.,]\d+)?$/.test(value);
+    }
+  %endif
+  
+  ${root}.find("form.form-validated").each(function(index, form){
     $(form).validate({
       errorClass: "help-inline"
       ,errorElement: "span"
@@ -104,22 +141,45 @@
       }
     });
   });
-  ${root}.on({"click": function(e){
-    var $target = $(e.target)
-      , templ = $("#template-"+$target.attr("_field_key"))
-      , new_node = templ.clone().removeAttr("id")
-      , new_position = parseInt($target.attr("_field_position"), 10) + 1
-      , inc = function(prop){return prop.replace(/-[0-9]+\./g, "-"+new_position+".")};
-    new_node.find("label").each(function(index, elem){
-      elem = $(elem); elem.attr("for", inc(elem.attr("for")));
-    });
-    new_node.find("input,select,textarea").each(function(index, elem){
-      elem = $(elem); elem.attr("id", inc(elem.attr("id"))); elem.attr("name", inc(elem.attr("name")));
-    });    
-    new_node.find(".control-number").html(new_position+1);
-    $target.attr("_field_position", new_position);
-    $target.closest(".add-more").before(new_node);
-    new_node.slideDown();
-    
-  }}, ".add-more-listitem");
+  ${root}.on({click:function(e){
+      var $target = $(e.target)
+        , $embeddedForm = $target.closest(".form-embedded")
+        , refLink = $target.closest(".form-embedded-wrapper").find(".add-more-listitem")
+        , delLink = $target.remove();
+        refLink.attr("_field_position", parseInt(refLink.attr("_field_position"), 10) - 1);
+        if($embeddedForm.prevAll(".form-embedded").length>1){
+          $embeddedForm.prev().prepend(delLink);
+        }
+        $embeddedForm.remove();
+      }
+    }, ".add-more-delete-link");
+  ${root}.on({
+    click : function(e){
+      var $target = $(e.target)
+        , $form = $target.closest("form")
+        , templ = $("#template-"+$target.attr("_field_key"))
+        , new_node = templ.clone().removeAttr("id")
+        , new_position = parseInt($target.attr("_field_position"), 10) + 1
+        , inc = function(elem, attr){
+          elem.attr(attr, elem.attr(attr).replace(/-[0-9]+\./g, "-"+new_position+"."))
+       };
+      new_node.find("label").each(function(index, elem){
+        elem = $(elem); inc(elem, "for");
+      });
+      new_node.find("input,select,textarea").each(function(index, elem){
+        elem = $(elem); 
+        inc(elem, "id"); 
+        inc(elem, "name");
+        elem.val("");
+      });    
+      new_node.find(".control-number").html(new_position+1);
+      $target.attr("_field_position", new_position);
+      $target.closest(".add-more").before(new_node);
+      var delete_link = $form.find(".add-more-delete-link").remove();
+      if(delete_link.length === 0){
+        delete_link = $('<a class="add-more-delete-link close">×</a>')
+      }
+      new_node.prepend(delete_link);
+    }
+  }, ".add-more-listitem");
 </%def>

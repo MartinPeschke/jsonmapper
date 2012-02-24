@@ -1,6 +1,11 @@
 from httplib2 import Http
 import simplejson
 import logging
+
+
+### local imports
+from . import Mapping
+
 log = logging.getLogger(__name__)
 
 class DBMessage(Exception):
@@ -12,14 +17,18 @@ class DBMessage(Exception):
 class DBException(Exception):pass
 
 class RemoteProc(object):
-  def __init__(self, remote_path, method, root_key, result_cls = None):
+  def __init__(self, remote_path, method, root_key = None, result_cls = None):
     self.remote_path = remote_path
     self.method      = method
     self.root_key    = root_key
     self.result_cls  = result_cls  
-  def __call__(self, backend, data):
-    result = backend(self.root_key, url=self.remote_path, method=self.method, data=data)
-    return self.result_cls.wrap(result) if self.result_cls else True
+  def __call__(self, backend, data = None):
+    if isinstance(data, Mapping): data = data.unwrap(sparse = True)
+    if self.root_key:
+      result = backend(self.root_key, url=self.remote_path, method=self.method, data=data)
+      return self.result_cls.wrap(result) if self.result_cls else True
+    else:
+      result = backend.query(url=self.remote_path, method=self.method, data=data)
 
 
 class Backend(object):

@@ -130,8 +130,12 @@ class Mapping(object):
     def setdefault(self, name, default):
         return self._data.setdefault(name, default)
 
-    def unwrap(self):
-        return self._data
+    def unwrap(self, sparse = False):
+        if sparse:
+          data = self._data
+          return dict([(k,data[k]) for k in data if data[k] is not None])
+        else:
+          return self._data
 
     @classmethod
     def build(cls, **d):
