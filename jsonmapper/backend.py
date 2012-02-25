@@ -9,7 +9,7 @@ from . import Mapping
 log = logging.getLogger(__name__)
 
 class DBMessage(Exception):
-    def __init__(self, message, result_key):
+    def __init__(self, message, result_key = None):
         self.result_key = result_key
         self.message = message
     def __str__(self):
@@ -54,7 +54,7 @@ class Backend(object):
     result = simplejson.loads(content)
     if result['status'] != 0: 
         raise DBException("Status: {status} Reason: {errorMessage}".format(**result))
-    elif result.get('dbMessage'):
-        raise DBMessage(result['dbMessage'], None)
+    elif result.get('dbMessage') or result.get('db_message'):
+        raise DBMessage(result.get('dbMessage', result.get('db_message')))
     else: 
       return result
