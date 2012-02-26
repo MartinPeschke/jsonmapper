@@ -13,7 +13,7 @@
     </select>
   %elif props.html_type == "checkbox":
     <label class="checkbox">
-      ${props.html_extra_label}
+      ${props.html_extra_label|n}
       <input class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
         type="checkbox" \
         id="${id_name}" \
@@ -37,7 +37,7 @@
 
 <%def name="renderFormLine(field_id_name, field, props, values, errors)">
   <div class="control-group${" error" if field in errors else ""}">
-    <label class="control-label" for="${field_id_name}">${props.html_label}</label>
+    <label class="control-label" for="${field_id_name}">${props.html_label|n}</label>
     <div class="controls">
       ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
       %if field in errors:

@@ -28,7 +28,7 @@ class RemoteProc(object):
       result = backend(self.root_key, url=self.remote_path, method=self.method, data=data)
       return self.result_cls.wrap(result) if self.result_cls else True
     else:
-      result = backend.query(url=self.remote_path, method=self.method, data=data)
+      return backend.query(url=self.remote_path, method=self.method, data=data)
 
 
 class Backend(object):
