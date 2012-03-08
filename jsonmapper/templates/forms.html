@@ -6,6 +6,7 @@
 <%def name="renderControl(id_name, value, props)" >
   %if props.html_type == "select":
     <select class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+          ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
           id="${id_name}" name="${id_name}">
       %for key, value in props.getItems(request):
         <option name="${key}">${value}</option>
@@ -14,21 +15,34 @@
   %elif props.html_type == "checkbox":
     <label class="checkbox">
       ${props.html_extra_label|n}
-      <input class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+      <input class="${getattr(props, 'classes', '')} ${'focused' if i==0 else ""}" \
         type="checkbox" \
         id="${id_name}" \
         name="${id_name}" \
         value="${props.html_default_value}" \
-        ${"required" if props.required else ""}>
+        ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+        ${"required" if getattr(props, "required", False) else ""}>
     </label>
+  %elif props.html_type == "textarea":
+      <textarea class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+        id="${id_name}" \
+        name="${id_name}" \
+        ${"required" if getattr(props, "required", False) else ""} \
+        ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+        ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""}
+        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""}>
+        ${value}
+      </textarea>
   %else:
       <input class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
         id="${id_name}" \
         name="${id_name}" \
         type="${props.html_type}" \
         value="${value}" \
-        ${"required" if props.required else ""} \
-        ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""}>
+        ${"required" if getattr(props, "required", False) else ""} \
+        ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+        ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""}
+        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""}>
         %if getattr(props, 'html_help', False):
           <p class="help-block">${props.html_help}</p>
         %endif
@@ -37,7 +51,7 @@
 
 <%def name="renderFormLine(field_id_name, field, props, values, errors)">
   <div class="control-group${" error" if field in errors else ""}">
-    <label class="control-label" for="${field_id_name}">${props.html_label|n}</label>
+    <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
     <div class="controls">
       ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
       %if field in errors:
@@ -55,7 +69,7 @@
       props = schema.fields[field]
       field_id_name = "{}-{}.{}".format(key, position, field) 
     %>
-    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", {}))}
+    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()))}
   %endfor
   </${schema.html_tag}>
 </%def>
@@ -67,7 +81,7 @@
       props = schema.fields[field]
       field_id_name = "{}.{}".format(key, field) 
     %>
-    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", {}))}
+    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()))}
   %endfor
   </${schema.html_tag}>
 </%def>
@@ -79,7 +93,7 @@
   values = values[schema.form_id]
   errors = errors[schema.form_id]
 %>
-   <form method="post" class="form-horizontal form-validated" id="${schema.form_id}">
+   <form method="post" class="form-horizontal form-validated ${getattr(schema, "html_classes", "")}" id="${schema.form_id}">
       <input type="hidden" name="type" value="${schema.form_id}"/>
       <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
       <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
@@ -104,7 +118,7 @@
             <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">add one more</a></div>
             </div>
           %elif props.repeating == False and isinstance(props, formencode.Schema):
-            ${self.buildSubform(field_id_name, props, values.get(field, {}), errors.get(field, {}))}
+            ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
           %else:
             ${self.renderFormLine(field_id_name, field, props, values, errors)}
           %endif
@@ -118,7 +132,7 @@
 
 
 
-<%def name="buildValidators(root)">
+<%def name="buildValidators(root, success=True)">
   %if request._LOCALE_ == 'de':
     $.validator.methods.range = function (value, element, param) {
       var globalizedValue = value.replace(",", ".");
@@ -134,10 +148,10 @@
       errorClass: "help-inline"
       ,errorElement: "span"
       ,highlight: function (element, errorClass, validClass) {
-        $(element).closest(".control-group").addClass("error");
+        $(element).closest(".control-group").addClass("error").removeClass(validClass);
       }
       , unhighlight: function (element, errorClass, validClass) {
-        $(element).closest(".control-group").removeClass("error");
+        $(element).closest(".control-group").removeClass("error").addClass(validClass);
       }
     });
   });
@@ -180,6 +194,10 @@
         delete_link = $('<a class="add-more-delete-link close">×</a>')
       }
       new_node.prepend(delete_link);
+      new_node.find("[generated]").remove();
+      new_node.find(".error").removeClass("error");
+      new_node.find(".valid").removeClass("valid");
+      
     }
   }, ".add-more-listitem");
 </%def>

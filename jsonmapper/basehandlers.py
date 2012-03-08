@@ -2,6 +2,7 @@
 from formencode.validators import Invalid
 from pyramid.httpexceptions import HTTPNotImplemented, HTTPUnauthorized
 from pyramid.view import view_config
+from BeautifulSoup import BeautifulSoup
 import formencode 
 from babel.numbers import parse_decimal, NumberFormatError
 
@@ -14,6 +15,31 @@ class BaseHandler(object):
       self.context = context
       
       
+     
+      
+class SanitizedHTMLString(formencode.validators.String):
+  messages = {"invalid_format":'There was some error in your HTML!'}
+  valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div']
+  valid_attrs = ['size', 'color', 'face', 'title', 'align']
+  def sanitize_html(self, html):
+      soup = BeautifulSoup(html)
+      for tag in soup.findAll(True):
+          if tag.name.lower() not in self.valid_tags:
+              tag.extract()
+          elif tag.name.lower() != "a":
+              tag.attrs = [attr for attr in tag.attrs if attr[0].lower() in self.valid_attrs]
+          else:
+              attrs = dict(tag.attrs)
+              tag.attrs = [('href', attrs.get('href')), ('target', '_blank')]
+      val = soup.renderContents()
+      return val.decode("utf-8")
+  def _to_python(self, value, state):
+    value = super(self.__class__, self)._to_python(value, state)
+    try:
+      return self.sanitize_html(value)
+    except Exception, e:
+      log.error("HTML_SANITIZING_ERROR %s", value)
+      raise formencode.Invalid(self.message("invalid_format", state, value = value), value, state)
 
 class OneOfState(formencode.validators.OneOf):
     isChoice = True
@@ -90,18 +116,27 @@ class FullValidatedFormHandler(object):
   @view_config(request_method='GET')
   def GET(self):
     self.request.session.new_csrf_token()
+    add_globals = getattr(self, "add_globals", None)
+    if(add_globals is not None):
+      self.result = add_globals(self.request, self.result)
+    prepop = getattr(self, "pre_fill_values", None)
+    if(prepop is not None):
+      self.result = prepop(self.request, self.result)
     return self.result
+
   @view_config(request_method='POST')
   def POST(self):
     req = self.request
-    if req.params['token'] != req.session.get_csrf_token():
+    if req.params.get('token') != req.session.get_csrf_token():
       self.request.session.new_csrf_token()
+      add_globals = getattr(self, "add_globals", None)
+      if(add_globals is not None):
+        self.result = add_globals(self.request, self.result)
       return self.result
     return self.validate_form()
 
   def validate_form(self):
     values = variable_decode(self.request.params)
-    log.debug(values)
     try:
       ### determine actual form used in this submission
       schema_id = values['type']
@@ -111,15 +146,17 @@ class FullValidatedFormHandler(object):
     try:
       form_result = schema.to_python(values[schema_id], state=self.request)
     except Invalid, error:
-      log.info(error.error_dict)
+      log.error(error.error_dict)
       self.result['values'][schema_id] = error.value or {}
       self.result['errors'][schema_id] = error.error_dict or {}
       self.request.response.status_int = 401
-      return self.result
     else:
       ### if on_success returns anything else than a redirect, it must be some validation error
       resp = schema.on_success(self.request, form_result)
       self.result['values'][schema_id] = resp['values']
       self.result['errors'][schema_id] = resp['errors']
       self.request.response.status_int = 401
-      return self.result
+    add_globals = getattr(self, "add_globals", None)
+    if(add_globals is not None):
+      self.result = add_globals(self.request, self.result)
+    return self.result

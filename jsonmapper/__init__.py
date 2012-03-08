@@ -32,6 +32,9 @@ from datetime import date, datetime, time
 from decimal import Decimal, ROUND_HALF_DOWN
 from time import strptime, struct_time
 
+import mako_render_tools
+
+
 
 __all__ = ['Mapping', 'Field', 'TextField', 'FloatField',
            'IntegerField', 'LongField', 'BooleanField', 'DecimalField','PictureField', 'BaseUnitField'
