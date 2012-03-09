@@ -5,13 +5,24 @@
 
 <%def name="renderControl(id_name, value, props)" >
   %if props.html_type == "select":
+    <%
+      select_value = value.get("value") if isinstance(value, dict) else value
+      custom = value.get("custom") if isinstance(value, dict) else ""
+    %>
     <select class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
           ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
-          id="${id_name}" name="${id_name}">
-      %for key, value in props.getItems(request):
-        <option name="${key}">${value}</option>
+          id="${id_name}" name="${id_name}.value">
+      %for item in props.getItems(request):
+        <option name="${props.getKey(item)}" \
+            ${'data-entity-custom=1' if getattr(item, props.custom_attribute, False) else ""} \
+            ${"selected=selected" if select_value == props.getKey(item) else ""} >
+              ${props.getValue(item)}</option>
       %endfor
     </select>
+    %if props.hasCustom(request):
+      <input type="input" class="${getattr(props, 'classes', 'span3')} select-option-custom" \
+      ${"required" if getattr(props, "required", False) else ""} name="${id_name}.custom" value="${custom}"/>
+    %endif
   %elif props.html_type == "checkbox":
     <label class="checkbox">
       ${props.html_extra_label|n}
@@ -39,6 +50,7 @@
         name="${id_name}" \
         type="${props.html_type}" \
         value="${value}" \
+        autocomplete="off"
         ${"required" if getattr(props, "required", False) else ""} \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""}
@@ -132,7 +144,7 @@
 
 
 
-<%def name="buildValidators(root, success=True)">
+<%def name="buildValidators(root, success=True, expanding_list = False, with_custom_select = False)">
   %if request._LOCALE_ == 'de':
     $.validator.methods.range = function (value, element, param) {
       var globalizedValue = value.replace(",", ".");
@@ -155,49 +167,70 @@
       }
     });
   });
-  ${root}.on({click:function(e){
-      var $target = $(e.target)
-        , $embeddedForm = $target.closest(".form-embedded")
-        , refLink = $target.closest(".form-embedded-wrapper").find(".add-more-listitem")
-        , delLink = $target.remove();
-        refLink.attr("_field_position", parseInt(refLink.attr("_field_position"), 10) - 1);
-        if($embeddedForm.prevAll(".form-embedded").length>1){
-          $embeddedForm.prev().prepend(delLink);
+  
+  %if with_custom_select:
+    <mako:text>
+    var checkSelectedOption = function(selectInput){
+        var selected = selectInput.find("option:selected")
+        if(selected.attr("data-entity-custom")){
+          selectInput.parent().find(".select-option-custom").show();
+        } else {
+          selectInput.parent().find(".select-option-custom").hide();
+          selectInput.closest(".control-group").removeClass("error").find("[generated]").remove();
         }
-        $embeddedForm.remove();
+      };
+    </mako:text>
+    ${root}.find("form.form-validated").on({change:function(e){checkSelectedOption($(e.target));}}, "select");
+    ${root}.find("form.form-validated").find("select").each(function(idx, selectInput){checkSelectedOption($(selectInput))});
+  %endif
+  
+  
+  
+  %if expanding_list:
+    ${root}.on({click:function(e){
+        var $target = $(e.target)
+          , $embeddedForm = $target.closest(".form-embedded")
+          , refLink = $target.closest(".form-embedded-wrapper").find(".add-more-listitem")
+          , delLink = $target.remove();
+          refLink.attr("_field_position", parseInt(refLink.attr("_field_position"), 10) - 1);
+          if($embeddedForm.prevAll(".form-embedded").length>1){
+            $embeddedForm.prev().prepend(delLink);
+          }
+          $embeddedForm.remove();
+        }
+      }, ".add-more-delete-link");
+    ${root}.on({
+      click : function(e){
+        var $target = $(e.target)
+          , $form = $target.closest("form")
+          , templ = $("#template-"+$target.attr("_field_key"))
+          , new_node = templ.clone().removeAttr("id")
+          , new_position = parseInt($target.attr("_field_position"), 10) + 1
+          , inc = function(elem, attr){
+            elem.attr(attr, elem.attr(attr).replace(/-[0-9]+\./g, "-"+new_position+"."))
+         };
+        new_node.find("label").each(function(index, elem){
+          elem = $(elem); inc(elem, "for");
+        });
+        new_node.find("input,select,textarea").each(function(index, elem){
+          elem = $(elem); 
+          inc(elem, "id"); 
+          inc(elem, "name");
+          elem.val("");
+        });    
+        new_node.find(".control-number").html(new_position+1);
+        $target.attr("_field_position", new_position);
+        $target.closest(".add-more").before(new_node);
+        var delete_link = $form.find(".add-more-delete-link").remove();
+        if(delete_link.length === 0){
+          delete_link = $('<a class="add-more-delete-link close">×</a>')
+        }
+        new_node.prepend(delete_link);
+        new_node.find("[generated]").remove();
+        new_node.find(".error").removeClass("error");
+        new_node.find(".valid").removeClass("valid");
+        
       }
-    }, ".add-more-delete-link");
-  ${root}.on({
-    click : function(e){
-      var $target = $(e.target)
-        , $form = $target.closest("form")
-        , templ = $("#template-"+$target.attr("_field_key"))
-        , new_node = templ.clone().removeAttr("id")
-        , new_position = parseInt($target.attr("_field_position"), 10) + 1
-        , inc = function(elem, attr){
-          elem.attr(attr, elem.attr(attr).replace(/-[0-9]+\./g, "-"+new_position+"."))
-       };
-      new_node.find("label").each(function(index, elem){
-        elem = $(elem); inc(elem, "for");
-      });
-      new_node.find("input,select,textarea").each(function(index, elem){
-        elem = $(elem); 
-        inc(elem, "id"); 
-        inc(elem, "name");
-        elem.val("");
-      });    
-      new_node.find(".control-number").html(new_position+1);
-      $target.attr("_field_position", new_position);
-      $target.closest(".add-more").before(new_node);
-      var delete_link = $form.find(".add-more-delete-link").remove();
-      if(delete_link.length === 0){
-        delete_link = $('<a class="add-more-delete-link close">×</a>')
-      }
-      new_node.prepend(delete_link);
-      new_node.find("[generated]").remove();
-      new_node.find(".error").removeClass("error");
-      new_node.find(".valid").removeClass("valid");
-      
-    }
-  }, ".add-more-listitem");
+    }, ".add-more-listitem");
+  %endif
 </%def>

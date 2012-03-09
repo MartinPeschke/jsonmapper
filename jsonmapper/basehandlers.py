@@ -49,6 +49,7 @@ class OneOfState(formencode.validators.OneOf):
     hideList = False
     getValue = None
     getKey = None
+    custom_attribute = 'custom'
     __unpackargs__ = ('list',)
 
     def getValues(self, request):
@@ -62,25 +63,34 @@ class OneOfState(formencode.validators.OneOf):
     def getItems(self, request):
       obj = request
       for key in self.stateKey.split("."): obj = getattr(obj, key)
-      return [(self.getKey(elem), self.getValue(elem)) for elem in obj]
-
-    def validate_python(self, value, state):
-        self.list = self.getKeys(state)
-        if self.testValueList and isinstance(value, (list, tuple)):
-            for v in value:
-                self.validate_python(v, state)
+      return obj
+    def hasCustom(self, request):
+      return len(filter(None, map(lambda item: getattr(item, self.custom_attribute, False),self.getItems(request)))) > 0
+    
+    def _to_python(self, value, state):
+        if isinstance(value, dict):
+          custom = value.get("custom", None)
+          val = value.get("value", None)
         else:
-            if not value in self.list:
-                if self.hideList:
-                    raise Invalid(self.message('invalid', state), value, state)
-                else:
-                    try:
-                        items = '; '.join(map(str, self.list))
-                    except UnicodeError:
-                        items = '; '.join(map(unicode, self.list))
-                    raise Invalid(
-                        self.message('notIn', state,
-                            items=items, value=value), value, state)
+          val = value
+        self.list = self.getKeys(state)
+        if not val in self.list:
+            if self.hideList:
+                raise Invalid(self.message('invalid', state), val, state)
+            else:
+                try:
+                    items = '; '.join(map(str, self.list))
+                except UnicodeError:
+                    items = '; '.join(map(unicode, self.list))
+                raise Invalid(
+                    self.message('notIn', state,
+                        items=items, val=val), val, state)
+        else:
+          return custom or val
+    
+    def validate_python(self, value, state):
+      pass
+
       
 class DecimalValidator(formencode.FancyValidator):
   messages = {"invalid_amount":'Bitte eine Zahl eingeben',
