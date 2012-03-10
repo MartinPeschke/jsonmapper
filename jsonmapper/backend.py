@@ -26,7 +26,7 @@ class RemoteProc(object):
     if isinstance(data, Mapping): data = data.unwrap(sparse = True)
     if self.root_key:
       result = backend(self.root_key, url=self.remote_path, method=self.method, data=data)
-      return self.result_cls.wrap(result) if self.result_cls else True
+      return self.result_cls.wrap(result) if self.result_cls else result
     else:
       return backend.query(url=self.remote_path, method=self.method, data=data)
 
