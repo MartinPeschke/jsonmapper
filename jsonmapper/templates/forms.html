@@ -20,7 +20,7 @@
       %endfor
     </select>
     %if props.hasCustom(request):
-      <input type="input" class="${getattr(props, 'classes', 'span3')} select-option-custom" \
+      <input type="text" class="${getattr(props, 'classes', 'span3')} select-option-custom" \
       ${"required" if getattr(props, "required", False) else ""} name="${id_name}.custom" value="${custom}"/>
     %endif
   %elif props.html_type == "checkbox":

@@ -16,6 +16,7 @@ class DBMessage(Exception):
       return "<DBMessage: '{0}'>".format(self.message)
 class DBException(Exception):pass
 
+
 class RemoteProc(object):
   def __init__(self, remote_path, method, root_key = None, result_cls = None):
     self.remote_path = remote_path
