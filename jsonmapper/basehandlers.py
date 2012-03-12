@@ -71,6 +71,8 @@ class OneOfState(formencode.validators.OneOf):
         if isinstance(value, dict):
           custom = value.get("custom", None)
           val = value.get("value", None)
+          items = {self.getKey(s):getattr(s, self.custom_attribute, False) for s in self.getItems(state)}
+          is_custom = items.get(val, False)
         else:
           val = value
         self.list = self.getKeys(state)
@@ -86,7 +88,7 @@ class OneOfState(formencode.validators.OneOf):
                     self.message('notIn', state,
                         items=items, val=val), val, state)
         else:
-          return custom or val
+          return custom if is_custom and custom else val
     
     def validate_python(self, value, state):
       pass
