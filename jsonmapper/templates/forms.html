@@ -1,5 +1,6 @@
 ﻿<%!
   from itertools import izip_longest
+  from random import randint
 %>
 
 
@@ -234,3 +235,63 @@
     }, ".add-more-listitem");
   %endif
 </%def>
+
+
+
+
+
+
+
+
+<mako:def name="formSubmitConfirm(root_id)">
+  <% modal_id = "confirmSubmit-{}".format(randint(0, 100000)) %>
+  <div class="modal" id="${modal_id}" style="display:none">
+    <div class="modal-header">
+      <a class="close" data-dismiss="modal">×</a>
+      <h3>${caller.title()}</h3>
+    </div>
+    <div class="modal-body">
+      ${caller.body()}
+    </div>
+    <div class="modal-footer">
+      ${caller.actions()}
+    </div>
+  </div>
+  <script>
+    $(function () {
+      var root = $("#${root_id}")
+      , modal = $("#${modal_id}")
+      , submit = function(form){form.submit();}
+      , confirm = function(form){
+        if(form.valid()){
+          modal.modal('show').find(".btn-submit").on({
+              click : function(e){
+                submit(form);
+              }
+              , keydown : function(e){
+                switch(e.keyCode){
+                  case 13:
+                  case 32:
+                    submit(form);
+                  break;
+                }
+              }
+            });
+        }
+      };
+      root.find(".btn-submit").on({
+            click : function(e){
+              confirm($(e.target).closest("form"));
+            }
+            , keydown : function(e){
+            switch(e.keyCode){
+              case 13:
+              case 32:
+                confirm($(e.target).closest("form"))
+              break;
+            }
+          }
+        });
+      });
+  </script>
+</mako:def>
