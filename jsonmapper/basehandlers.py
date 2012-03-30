@@ -4,7 +4,7 @@ from pyramid.httpexceptions import HTTPNotImplemented, HTTPUnauthorized
 from pyramid.view import view_config
 from BeautifulSoup import BeautifulSoup
 import formencode 
-from babel.numbers import parse_decimal, NumberFormatError
+from babel.numbers import parse_decimal, format_decimal, NumberFormatError
 
 import logging
 log = logging.getLogger(__name__)
@@ -105,13 +105,13 @@ class DecimalValidator(formencode.FancyValidator):
     try:
       value = parse_decimal(value, locale = state._LOCALE_)
       if self.max and value > self.max:
-        raise formencode.Invalid(self.message("amount_too_high", state, max_amount = format_decimal(self.max, locale=websession['lang'])), value, state)
+        raise formencode.Invalid(self.message("amount_too_high", state, max_amount = format_decimal(self.max, locale=state._LOCALE_)), value, state)
       if self.min and value < self.min:
-        raise formencode.Invalid(self.message("amount_too_low", state, min_amount = format_decimal(self.min, locale=websession['lang'])), value, state)
+        raise formencode.Invalid(self.message("amount_too_low", state, min_amount = format_decimal(self.min, locale=state._LOCALE_)), value, state)
     except NumberFormatError, e:
       raise formencode.Invalid(self.message("invalid_amount", state, value = value), value, state)
     except ValueError, e:
-      raise formencode.Invalid(self.message("amount_too_high", state, max_amount = format_decimal(self.max, locale=websession['lang'])), value, state)
+      raise formencode.Invalid(self.message("amount_too_high", state, max_amount = format_decimal(self.max, locale=state._LOCALE_)), value, state)
     else: return value
       
 
