@@ -68,6 +68,7 @@ class OneOfState(formencode.validators.OneOf):
       return len(filter(None, map(lambda item: getattr(item, self.custom_attribute, False),self.getItems(request)))) > 0
     
     def _to_python(self, value, state):
+        print '------------------------>', value
         if isinstance(value, dict):
           custom = value.get("custom", None)
           val = value.get("value", None)
@@ -90,9 +91,10 @@ class OneOfState(formencode.validators.OneOf):
         else:
           return custom if is_custom and custom else val
     
-    def validate_python(self, value, state):
-      pass
-
+    validate_python = formencode.FancyValidator._validate_noop
+class OneOfStateNoCustom(OneOfState):
+    def hasCustom(self, req):
+        return False
       
 class DecimalValidator(formencode.FancyValidator):
   messages = {"invalid_amount":'Bitte eine Zahl eingeben',

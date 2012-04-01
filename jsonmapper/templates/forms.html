@@ -14,7 +14,7 @@
           ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
           id="${id_name}" name="${id_name}.value">
       %for item in props.getItems(request):
-        <option name="${props.getKey(item)}" \
+        <option value="${props.getKey(item)}" \
             ${'data-entity-custom=1' if getattr(item, props.custom_attribute, False) else ""} \
             ${"selected=selected" if select_value == props.getKey(item) else ""} >
               ${props.getValue(item)}</option>
