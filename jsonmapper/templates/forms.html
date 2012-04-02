@@ -58,7 +58,7 @@
         id="${id_name}" \
         name="${id_name}" \
         type="${props.html_type}" \
-        value="${"" if props.html_type == "password" and not getattr(props, "redisplay_password", False) else value}" \
+        value="${"" if props.html_type == "password" and not getattr(props, "redisplay_password", False) else ("" if value is None else value)}" \
         autocomplete="off"
         ${"required" if getattr(props, "required", False) else ""} \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
