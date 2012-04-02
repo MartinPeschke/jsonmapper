@@ -68,7 +68,6 @@ class OneOfState(formencode.validators.OneOf):
       return len(filter(None, map(lambda item: getattr(item, self.custom_attribute, False),self.getItems(request)))) > 0
     
     def _to_python(self, value, state):
-        print '------------------------>', value
         if isinstance(value, dict):
           custom = value.get("custom", None)
           val = value.get("value", None)
