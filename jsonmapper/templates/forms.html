@@ -42,9 +42,7 @@
         ${"required" if getattr(props, "required", False) else ""} \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""}
-        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""}>
-        ${value}
-      </textarea>
+        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""}>${value}</textarea>
   %else:
       <%
         if props.html_type == "number":
