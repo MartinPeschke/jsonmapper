@@ -128,7 +128,7 @@ class FullValidatedFormHandler(object):
 
   @view_config(request_method='GET')
   def GET(self):
-    self.request.session.new_csrf_token()
+    self.request.session.get_csrf_token()
     add_globals = getattr(self, "add_globals", None)
     if(add_globals is not None):
       self.result = add_globals(self.request, self.result)
@@ -141,7 +141,7 @@ class FullValidatedFormHandler(object):
   def POST(self):
     req = self.request
     if req.params.get('token') != req.session.get_csrf_token():
-      self.request.session.new_csrf_token()
+      self.request.session.get_csrf_token()
       add_globals = getattr(self, "add_globals", None)
       if(add_globals is not None):
         self.result = add_globals(self.request, self.result)
