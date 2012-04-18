@@ -45,23 +45,31 @@
         ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""}>${value}</textarea>
   %else:
       <%
-        if props.html_type == "number":
+        html_type = props.html_type
+        classes = getattr(props, 'classes', 'span3')
+        if html_type == "number":
+          html_type = 'text'
+          classes+= " number"
           maxpropname = 'max'
           minpropname = 'min'
+          extras = [("step", "0.01")]
         else:
           maxpropname = 'maxlength'
           minpropname = 'minlength'
+          extras = []
       %>
-      <input class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+      <input class="${classes} ${'focused' if i==0 else ""}" \
         id="${id_name}" \
         name="${id_name}" \
-        type="${props.html_type}" \
-        value="${"" if props.html_type == "password" and not getattr(props, "redisplay_password", False) else ("" if value is None else value)}" \
+        type="${html_type}" \
+        value="${"" if html_type == "password" and not getattr(props, "redisplay_password", False) else ("" if value is None else value)}" \
         autocomplete="off"
         ${"required" if getattr(props, "required", False) else ""} \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${'{}={}'.format(minpropname, props.min) if getattr(props, 'min', False) else ""}
-        ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""}>
+        ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""}
+        ${" ".join(('{}={}'.format(*extra) for extra in extras))|n}
+        >
         %if getattr(props, 'html_help', False):
           <p class="help-block">${props.html_help}</p>
         %endif
@@ -152,7 +160,7 @@
 
 
 <%def name="buildValidators(root, success=True, expanding_list = False, with_custom_select = False)">
-  %if request._LOCALE_ == 'de':
+  %if "de"  in request._LOCALE_.lower():
     $.validator.methods.range = function (value, element, param) {
       var globalizedValue = value.replace(",", ".");
       return this.optional(element) || (globalizedValue >= param[0] && globalizedValue <= param[1]);
