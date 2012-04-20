@@ -39,11 +39,17 @@ class Backend(object):
   def __call__(self, result_key, **options):
     result = self.query(**options)
     return result[result_key]
-
+  
+  def get_full_path(self, path):
+    return path
+  
+  def get_endpoint_url(self, path):
+    return "{}{}".format(self.location, path)
+  
   def query(self, **options):
     h = Http()
     method = options.get("method", "GET")
-    endpoint = "{}{}".format(self.location, options['url'])
+    endpoint = self.get_endpoint_url(options['url'])
     log.debug("Endpoint: %s, Method: %s", endpoint, method)
     if method == "POST":
       data = simplejson.dumps(options['data'])
@@ -59,3 +65,13 @@ class Backend(object):
         raise DBMessage(result.get('dbMessage', result.get('db_message')))
     else: 
       return result
+
+      
+class VersionedBackend(Backend):
+  def __init__(self, location, version):
+    self.location = location
+    self.version = version
+  def get_endpoint_url(self, path):
+    return "{}/{}{}".format(self.location, self.version, path)
+  def get_full_path(self, path):
+    return "/api/{}{}".format(self.version, path) # in template javascript, this needs to get past reverse proxy and it is configured to reroute /api/
