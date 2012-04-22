@@ -19,7 +19,7 @@ class BaseHandler(object):
       
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
-  valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div']
+  valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
   valid_attrs = ['size', 'color', 'face', 'title', 'align']
   def sanitize_html(self, html):
       soup = BeautifulSoup(html)
