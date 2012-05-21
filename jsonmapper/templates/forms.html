@@ -82,7 +82,7 @@
     <div class="controls">
       ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
       %if field in errors:
-        <span class="help-inline">${errors[field]}</span>
+        <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
       %endif
     </div>
   </div>
@@ -125,31 +125,33 @@
       <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
       <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
       <fieldset>
-        <legend>${caller.header()}</legend>
-        %if hasattr(caller, 'headparagraph'):
-          <div class="sublegend">${caller.headparagraph()}</div>
-        %endif
-        %for i, field in enumerate(schema.form_order):
-          <% 
-            props = schema.fields[field]
-            field_id_name = "{}.{}".format(schema.form_id, field)
-          %>
-          
-          %if props.repeating == True and isinstance(props, formencode.ForEach):
-            <div class="form-embedded-wrapper">
-            %for j, (values_, errors_) in enumerate(izip_longest(values.get(field, [{}]), getattr(errors.get(field), "error_list", []), fillvalue = {})):
-              %for subschema in props.validators:
-                ${self.buildListSubform(field_id_name, j, subschema, values_, errors_)}
-              %endfor
-            %endfor
-            <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">add one more</a></div>
-            </div>
-          %elif props.repeating == False and isinstance(props, formencode.Schema):
-            ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
-          %else:
-            ${self.renderFormLine(field_id_name, field, props, values, errors)}
+        <div class="form-fields clearfix">
+          <legend>${caller.header()}</legend>
+          %if hasattr(caller, 'headparagraph'):
+            <div class="sublegend">${caller.headparagraph()}</div>
           %endif
-        %endfor
+          %for i, field in enumerate(schema.form_order):
+            <% 
+              props = schema.fields[field]
+              field_id_name = "{}.{}".format(schema.form_id, field)
+            %>
+            
+            %if props.repeating == True and isinstance(props, formencode.ForEach):
+              <div class="form-embedded-wrapper">
+              %for j, (values_, errors_) in enumerate(izip_longest(values.get(field, [{}]), getattr(errors.get(field), "error_list", []), fillvalue = {})):
+                %for subschema in props.validators:
+                  ${self.buildListSubform(field_id_name, j, subschema, values_, errors_)}
+                %endfor
+              %endfor
+              <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">add one more</a></div>
+              </div>
+            %elif props.repeating == False and isinstance(props, formencode.Schema):
+              ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
+            %else:
+              ${self.renderFormLine(field_id_name, field, props, values, errors)}
+            %endif
+          %endfor
+        </div>
         <div class="form-actions">
           ${caller.footer()}
         </div>
