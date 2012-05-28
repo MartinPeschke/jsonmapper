@@ -12,7 +12,8 @@
     %>
     <select class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
           ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
-          id="${id_name}" name="${id_name}.value">
+          id="${id_name}" name="${id_name}.value"
+          ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
       %for item in props.getItems(request):
         <option value="${props.getKey(item)}" \
             ${'data-entity-custom=1' if getattr(item, props.custom_attribute, False) else ""} \
@@ -33,7 +34,8 @@
         name="${id_name}" \
         value="${props.html_default_value}" \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
-        ${"required" if getattr(props, "required", False) else ""}>
+        ${"required" if getattr(props, "required", False) else ""} \
+        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
     </label>
   %elif props.html_type == "textarea":
       <textarea class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
@@ -41,8 +43,9 @@
         name="${id_name}" \
         ${"required" if getattr(props, "required", False) else ""} \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
-        ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""}
-        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""}>${value}</textarea>
+        ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""} \
+        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""} \
+        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>${value}</textarea>
   %else:
       <%
         html_type = props.html_type
@@ -68,7 +71,8 @@
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${'{}={}'.format(minpropname, props.min) if getattr(props, 'min', False) else ""}
         ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""}
-        ${" ".join(('{}={}'.format(*extra) for extra in extras))|n}
+        ${" ".join(('{}="{}"'.format(*extra) for extra in extras))|n}
+        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}
         >
         %if getattr(props, 'html_help', False):
           <p class="help-block">${props.html_help}</p>
@@ -78,8 +82,10 @@
 
 <%def name="renderFormLine(field_id_name, field, props, values, errors)">
   <div class="control-group${" error" if field in errors else ""}">
-    <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
-    <div class="controls">
+    %if not getattr(props, "suppress_label", False):
+      <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
+     %endif
+    <div class="controls ${getattr(props, "controls_class", "")}">
       ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
       %if field in errors:
         <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
@@ -88,9 +94,13 @@
   </div>
 </%def>
 
-<%def name="buildListSubform(key, position, schema, values, errors)">
+<%def name="buildListItemSubform(key, position, schema, values, errors, id_key = None)">
   <${schema.html_tag} class="form-embedded ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
   <span class="control-number">${position+1}</span>
+  %if id_key:
+    <input type="hidden" name="${"{}-{}.{}".format(key, position, id_key) }" value="${values.get(id_key)}"/>
+  %endif
+
   %for i, field in enumerate(schema.form_order):
     <% 
       props = schema.fields[field]
@@ -100,6 +110,21 @@
   %endfor
   </${schema.html_tag}>
 </%def>
+
+
+<%def name="buildListSubforms(field_id_name, field, props, values, errors, id_key = None)">
+  <div class="form-embedded-wrapper">
+      %for j, (values_, errors_) in enumerate(izip_longest(values.get(field, [{}]), getattr(errors.get(field), "error_list", []), fillvalue = {})):
+        %for subschema in props.validators:
+          ${self.buildListItemSubform(field_id_name, j, subschema, values_, errors_, id_key)}
+        %endfor
+      %endfor
+      <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">${getattr(props, "add_more_link_label", "add one more")|n}</a></div>
+  </div>
+</%def>
+
+
+
 
 <%def name="buildSubform(key, schema, values, errors)">
   <${schema.html_tag} class="${schema.html_classes}">
@@ -112,6 +137,10 @@
   %endfor
   </${schema.html_tag}>
 </%def>
+
+
+
+
 
 
 
@@ -137,14 +166,7 @@
             %>
             
             %if props.repeating == True and isinstance(props, formencode.ForEach):
-              <div class="form-embedded-wrapper">
-              %for j, (values_, errors_) in enumerate(izip_longest(values.get(field, [{}]), getattr(errors.get(field), "error_list", []), fillvalue = {})):
-                %for subschema in props.validators:
-                  ${self.buildListSubform(field_id_name, j, subschema, values_, errors_)}
-                %endfor
-              %endfor
-              <div class="add-more"><a class="link add-more-listitem" _field_position="${j}" _field_key="${field_id_name.replace(".","-")}" _template="template-${field_id_name}">add one more</a></div>
-              </div>
+                ${self.buildListSubforms(field_id_name, field, props, errors, values)}
             %elif props.repeating == False and isinstance(props, formencode.Schema):
               ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
             %else:
@@ -173,7 +195,7 @@
   %endif
   
   ${root}.find("form.form-validated").each(function(index, form){
-    $(form).validate({
+    var validator = $(form).validate({
       errorClass: "help-inline"
       ,errorElement: "span"
       ,highlight: function (element, errorClass, validClass) {
@@ -182,6 +204,10 @@
       , unhighlight: function (element, errorClass, validClass) {
         $(element).closest(".control-group").removeClass("error").addClass(validClass);
       }
+    });
+    $(form).find("input[type=reset], button[type=reset]").click(function(e) {
+        validator.resetForm();
+        $(form).find(".error").removeClass("error");
     });
   });
   
@@ -226,6 +252,7 @@
           , inc = function(elem, attr){
             elem.attr(attr, elem.attr(attr).replace(/-[0-9]+\./g, "-"+new_position+"."))
          };
+        new_node.find("input[type=hidden]").remove();
         new_node.find("label").each(function(index, elem){
           elem = $(elem); inc(elem, "for");
         });

@@ -132,9 +132,9 @@ class FullValidatedFormHandler(object):
     add_globals = getattr(self, "add_globals", None)
     if(add_globals is not None):
       self.result = add_globals(self.request, self.result)
-    prepop = getattr(self, "pre_fill_values", None)
-    if(prepop is not None):
-      self.result = prepop(self.request, self.result)
+    pre_fill_values = getattr(self, "pre_fill_values", None)
+    if(pre_fill_values is not None):
+      self.result = pre_fill_values(self.request, self.result)
     return self.result
 
   @view_config(request_method='POST')
