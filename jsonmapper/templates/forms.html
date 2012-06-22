@@ -173,6 +173,10 @@
               ${self.renderFormLine(field_id_name, field, props, values, errors)}
             %endif
           %endfor
+          
+          %if hasattr(caller, "appended"):
+            ${caller.appended()}
+          %endif
         </div>
         <div class="form-actions">
           ${caller.footer()}
