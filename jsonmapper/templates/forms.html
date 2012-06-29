@@ -33,6 +33,7 @@
         id="${id_name}" \
         name="${id_name}" \
         value="${props.html_default_value}" \
+        ${'checked' if value else ""}
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${"required" if getattr(props, "required", False) else ""} \
         ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
@@ -81,17 +82,21 @@
 </%def>
 
 <%def name="renderFormLine(field_id_name, field, props, values, errors)">
-  <div class="control-group${" error" if field in errors else ""}">
-    %if not getattr(props, "suppress_label", False):
-      <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
-     %endif
-    <div class="controls ${getattr(props, "controls_class", "")}">
-      ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
-      %if field in errors:
-        <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
-      %endif
+  %if props.html_type == 'hidden':
+      <input id="${field_id_name}" name="${field_id_name}" type="${props.html_type}" value="${values.get(field, "")}">
+  %else:
+    <div class="control-group${" error" if field in errors else ""}">
+      %if not getattr(props, "suppress_label", False):
+        <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
+       %endif
+      <div class="controls ${getattr(props, "controls_class", "")}">
+        ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
+        %if field in errors:
+          <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
+        %endif
+      </div>
     </div>
-  </div>
+  %endif
 </%def>
 
 <%def name="buildListItemSubform(key, position, schema, values, errors, id_key = None)">
@@ -141,7 +146,28 @@
 
 
 
-
+<%def name="buildFormContent(schema, values, errors)">
+      <input type="hidden" name="type" value="${schema.form_id}"/>
+      <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
+      <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
+      <fieldset>
+        <div class="form-fields clearfix">
+          %for i, field in enumerate(schema.form_order):
+            <% 
+              props = schema.fields[field]
+              field_id_name = "{}.{}".format(schema.form_id, field)
+            %>
+            
+            %if props.repeating == True and isinstance(props, formencode.ForEach):
+                ${self.buildListSubforms(field_id_name, field, props, errors, values)}
+            %elif props.repeating == False and isinstance(props, formencode.Schema):
+              ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
+            %else:
+              ${self.renderFormLine(field_id_name, field, props, values, errors)}
+            %endif
+          %endfor
+      </fieldset>
+</%def>
 
 
 <%def name="buildform(schema, values, errors)">
@@ -149,7 +175,7 @@
   values = values[schema.form_id]
   errors = errors[schema.form_id]
 %>
-   <form method="post" class="form-horizontal form-validated ${getattr(schema, "html_classes", "")}" id="${schema.form_id}">
+   <form method="post" class="${getattr(schema, "html_classes", "form-horizontal form-validated")}" id="${schema.form_id}">
       <input type="hidden" name="type" value="${schema.form_id}"/>
       <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
       <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
