@@ -157,7 +157,7 @@ class FullValidatedFormHandler(object):
     except KeyError, e:
       raise HTTPNotImplemented("Unexpected submission type!")
     try:
-      form_result = schema.to_python(values[schema_id], state=self.request)
+      form_result = schema.to_python(values.get(schema_id), state=self.request)
     except Invalid, error:
       log.error(error.error_dict)
       self.result['values'][schema_id] = error.value or {}

@@ -14,12 +14,12 @@ from setuptools import setup
 
 setup(
     name = 'JSONMapperHGMMPFork',
-    version = '0.47',
+    version = '0.48',
     description = "Mapping JSON to objects and vice versa, this is a product of Christopher Lenz and Matthew Good with slight modifications",
     long_description = '',
     author = 'Martin Peschke',
     author_email = 'martin@per-4.com',
-    install_requires=['simplejson', 'httplib2', 'formencode', 'pyramid', 'mako', 'babel', 'BeautifulSoup'],
+    install_requires=['simplejson', 'httplib2', 'formencode', 'pyramid==1.3.0', 'mako', 'babel', 'BeautifulSoup'],
     license = 'BSD',
     zip_safe = False,
     url = 'https://github.com/MartinPeschke/jsonmapper',

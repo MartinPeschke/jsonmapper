@@ -10,8 +10,8 @@ log = logging.getLogger(__name__)
 
 class DBMessage(Exception):
     def __init__(self, message, result_key = None):
-        self.result_key = result_key
         self.message = message
+        self.result_key = result_key
     def __str__(self):
       return "<DBMessage: '{0}'>".format(self.message)
 class DBException(Exception):pass
@@ -62,7 +62,7 @@ class Backend(object):
     if result['status'] != 0: 
         raise DBException("Status: {status} Reason: {errorMessage}".format(**result))
     elif result.get('dbMessage') or result.get('db_message'):
-        raise DBMessage(result.get('dbMessage', result.get('db_message')))
+        raise DBMessage(result.get('dbMessage', result.get('db_message')), result)
     else: 
       return result
 
