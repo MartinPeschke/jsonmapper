@@ -123,7 +123,7 @@
 
 <%def name="buildListSubforms(field_id_name, field, props, values, errors, id_key = None)">
   <div class="form-embedded-wrapper">
-      %for j, (values_, errors_) in enumerate(izip_longest(values.get(field, [{}]), getattr(errors.get(field), "error_list", []), fillvalue = {})):
+      %for j, (values_, errors_) in enumerate(izip_longest(values.get(field) or [{}], getattr(errors.get(field), "error_list", []), fillvalue = {})):
         %for subschema in props.validators:
           ${self.buildListItemSubform(field_id_name, j, subschema, values_, errors_, id_key)}
         %endfor
