@@ -101,6 +101,10 @@
 
 <%def name="buildListItemSubform(key, position, schema, values, errors, id_key = None)">
   <${schema.html_tag} class="form-embedded ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
+  %if position > 0:
+    <a class="add-more-delete-link close">×</a>
+  %endif
+  
   <span class="control-number">${position+1}</span>
   %if id_key:
     <input type="hidden" name="${"{}-{}.{}".format(key, position, id_key) }" value="${values.get(id_key)}"/>
