@@ -159,7 +159,7 @@
             %>
             
             %if props.repeating == True and isinstance(props, formencode.ForEach):
-                ${self.buildListSubforms(field_id_name, field, props, errors, values)}
+                ${self.buildListSubforms(field_id_name, field, props, values, errors)}
             %elif props.repeating == False and isinstance(props, formencode.Schema):
               ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
             %else:
@@ -192,7 +192,7 @@
             %>
             
             %if props.repeating == True and isinstance(props, formencode.ForEach):
-                ${self.buildListSubforms(field_id_name, field, props, errors, values)}
+                ${self.buildListSubforms(field_id_name, field, props, values, errors)}
             %elif props.repeating == False and isinstance(props, formencode.Schema):
               ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
             %else:
