@@ -85,7 +85,7 @@
   %if props.html_type == 'hidden':
       <input id="${field_id_name}" name="${field_id_name}" type="${props.html_type}" value="${values.get(field, "")}">
   %else:
-    <div class="control-group${" error" if field in errors else ""}">
+    <div class="control-group${" error" if field in errors else ""} ${getattr(props,"parent_classes","")}">
       %if not getattr(props, "suppress_label", False):
         <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
        %endif
