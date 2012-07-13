@@ -25,7 +25,7 @@ To define a document mapping, you declare a Python class inherited from
 
 """
 
-import copy
+import copy, simplejson
 
 from calendar import timegm
 from datetime import date, datetime, time
@@ -140,6 +140,9 @@ class Mapping(object):
         else:
           return self._data
 
+    def dumps(self, sparse = False):
+      return simplejson.dumps(self.unwrap(sparse))
+          
     @classmethod
     def build(cls, **d):
         """ build an anonymous mapping on the fly"""
