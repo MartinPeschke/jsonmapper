@@ -148,12 +148,14 @@
 </%def>
 
 
-
-
-<%def name="buildFormContent(schema, values, errors)">
+<%def name="prelims(schema)">
       <input type="hidden" name="type" value="${schema.form_id}"/>
       <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
       <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
+</%def>
+
+<%def name="buildFormContent(schema, values, errors)">
+    ${self.prelims(schema)}
       <fieldset>
         <div class="form-fields clearfix">
           %for i, field in enumerate(schema.form_order):
