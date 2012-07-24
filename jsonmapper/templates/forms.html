@@ -163,7 +163,6 @@
               props = schema.fields[field]
               field_id_name = "{}.{}".format(schema.form_id, field)
             %>
-            
             %if props.repeating == True and isinstance(props, formencode.ForEach):
                 ${self.buildListSubforms(field_id_name, field, props, values, errors)}
             %elif props.repeating == False and isinstance(props, formencode.Schema):
