@@ -4,13 +4,13 @@
 %>
 
 
-<%def name="renderControl(id_name, value, props)" >
+<%def name="renderControl(id_name, value, props, default_classes = 'span3')" >
   %if props.html_type == "select":
     <%
       select_value = value.get("value") if isinstance(value, dict) else value
       custom = value.get("custom") if isinstance(value, dict) else ""
     %>
-    <select class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+    <select class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
           ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
           id="${id_name}" name="${id_name}.value"
           ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
@@ -22,12 +22,12 @@
       %endfor
     </select>
     %if props.hasCustom(request):
-      <input type="text" class="${getattr(props, 'classes', 'span3')} select-option-custom" \
+      <input type="text" class="${getattr(props, 'classes', default_classes)} select-option-custom" \
       ${"required" if getattr(props, "required", False) else ""} name="${id_name}.custom" value="${custom}"/>
     %endif
   %elif props.html_type == "checkbox":
     <label class="checkbox">
-      ${props.html_extra_label|n}
+      ${_(props.html_extra_label)|n}
       <input class="${getattr(props, 'classes', '')} ${'focused' if i==0 else ""}" \
         type="checkbox" \
         id="${id_name}" \
@@ -39,7 +39,7 @@
         ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
     </label>
   %elif props.html_type == "textarea":
-      <textarea class="${getattr(props, 'classes', 'span3')} ${'focused' if i==0 else ""}" \
+      <textarea class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
         id="${id_name}" \
         name="${id_name}" \
         ${"required" if getattr(props, "required", False) else ""} \
@@ -50,7 +50,7 @@
   %else:
       <%
         html_type = props.html_type
-        classes = getattr(props, 'classes', 'span3')
+        classes = getattr(props, 'classes', default_classes)
         if html_type == "number":
           html_type = 'text'
           classes+= " number"
@@ -62,6 +62,9 @@
           minpropname = 'minlength'
           extras = []
       %>
+      %if getattr(props, 'html_append', None):
+        <div class="input-append">
+      %endif
       <input class="${classes} ${'focused' if i==0 else ""}" \
         id="${id_name}" \
         name="${id_name}" \
@@ -74,23 +77,26 @@
         ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""}
         ${" ".join(('{}="{}"'.format(*extra) for extra in extras))|n}
         ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}
-        >
+        >\
+      %if getattr(props, 'html_append', None):
+<span class="add-on">${_(props.html_append)|n}</span></div>
+      %endif
         %if getattr(props, 'html_help', False):
-          <p class="help-block">${props.html_help}</p>
+          <p class="help-block">${_(props.html_help)|n}</p>
         %endif
   %endif
 </%def>
 
-<%def name="renderFormLine(field_id_name, field, props, values, errors)">
+<%def name="renderFormLine(field_id_name, field, props, values, errors, default_classes = 'span3')">
   %if props.html_type == 'hidden':
       <input id="${field_id_name}" name="${field_id_name}" type="${props.html_type}" value="${values.get(field, "")}">
   %else:
     <div class="control-group${" error" if field in errors else ""} ${getattr(props,"parent_classes","")}">
       %if not getattr(props, "suppress_label", False):
-        <label class="control-label" for="${field_id_name}">${getattr(props, "html_label", "&nbsp;")|n}</label>
+        <label class="control-label" for="${field_id_name}">${_(getattr(props, "html_label", "&nbsp;"))|n}</label>
        %endif
       <div class="controls ${getattr(props, "controls_class", "")}">
-        ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props)}
+        ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props, default_classes = default_classes)}
         %if field in errors:
           <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
         %endif
@@ -99,7 +105,7 @@
   %endif
 </%def>
 
-<%def name="buildListItemSubform(key, position, schema, values, errors, id_key = None)">
+<%def name="buildListItemSubform(key, position, schema, values, errors, id_key = None, default_classes = 'span3')">
   <${schema.html_tag} class="form-embedded ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
   %if position > 0:
     <a class="add-more-delete-link close">×</a>
@@ -115,7 +121,7 @@
       props = schema.fields[field]
       field_id_name = "{}-{}.{}".format(key, position, field) 
     %>
-    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()))}
+    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()), default_classes = default_classes)}
   %endfor
   </${schema.html_tag}>
 </%def>
@@ -135,14 +141,14 @@
 
 
 
-<%def name="buildSubform(key, schema, values, errors)">
+<%def name="buildSubform(key, schema, values, errors, default_classes = 'span3')">
   <${schema.html_tag} class="${schema.html_classes}">
   %for i, field in enumerate(schema.form_order):
     <% 
       props = schema.fields[field]
       field_id_name = "{}.{}".format(key, field) 
     %>
-    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()))}
+    ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()), default_classes = default_classes)}
   %endfor
   </${schema.html_tag}>
 </%def>
@@ -168,7 +174,7 @@
             %elif props.repeating == False and isinstance(props, formencode.Schema):
               ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
             %else:
-              ${self.renderFormLine(field_id_name, field, props, values, errors)}
+              ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
             %endif
           %endfor
       </fieldset>
@@ -201,7 +207,7 @@
             %elif props.repeating == False and isinstance(props, formencode.Schema):
               ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
             %else:
-              ${self.renderFormLine(field_id_name, field, props, values, errors)}
+              ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
             %endif
           %endfor
           
