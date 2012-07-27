@@ -113,7 +113,7 @@ class DateValidator(formencode.FancyValidator):
     try:
       value = datetime.strptime(value, self.format)
     except ValueError, e:
-      raise formencode.Invalid(self.message("badFormat", state, self.format), value, state)
+      raise formencode.Invalid(self.message("badFormat", state, format = self.format, value=value), value, state)
     else: return value
       
 class DecimalValidator(formencode.FancyValidator):
