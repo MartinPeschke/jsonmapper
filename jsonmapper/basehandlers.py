@@ -3,7 +3,8 @@ from formencode.validators import Invalid
 from pyramid.httpexceptions import HTTPNotImplemented, HTTPUnauthorized
 from pyramid.view import view_config
 from BeautifulSoup import BeautifulSoup
-import formencode 
+import formencode
+from datetime import datetime
 from babel.numbers import parse_decimal, format_decimal, NumberFormatError
 
 import logging
@@ -13,9 +14,9 @@ class BaseHandler(object):
   def __init__(self, context, request):
       self.request = request
       self.context = context
-      
-      
-     
+
+
+_ = lambda s: s
       
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
@@ -94,6 +95,26 @@ class OneOfState(formencode.validators.OneOf):
 class OneOfStateNoCustom(OneOfState):
     def hasCustom(self, req):
         return False
+
+
+class DateValidator(formencode.FancyValidator):
+  messages = dict(
+        badFormat=_('Please enter the date in the form %(format)s'),
+        monthRange=_('Please enter a month from 1 to 12'),
+        invalidDay=_('Please enter a valid day'),
+        dayRange=_('That month only has %(days)i days'),
+        invalidDate=_('That is not a valid day (%(exception)s)'),
+        unknownMonthName=_('Unknown month name: %(month)s'),
+        invalidYear=_('Please enter a number for the year'),
+        fourDigitYear=_('Please enter a four-digit year after 1899'),
+        wrongFormat=_('Please enter the date in the form %(format)s')
+    )
+  def _to_python(self, value, state):
+    try:
+      value = datetime.strptime(value, self.format)
+    except ValueError, e:
+      raise formencode.Invalid(self.message("badFormat", state, self.format), value, state)
+    else: return value
       
 class DecimalValidator(formencode.FancyValidator):
   messages = {"invalid_amount":'Bitte eine Zahl eingeben',
