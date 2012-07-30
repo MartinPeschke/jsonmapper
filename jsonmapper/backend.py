@@ -23,16 +23,29 @@ class RemoteProc(object):
     self.method      = method
     self.root_key    = root_key
     self.result_cls  = result_cls  
-  def __call__(self, backend, data = None):
-    if isinstance(data, Mapping): data = data.unwrap(sparse = True)
-    if self.root_key:
-      result = backend(self.root_key, url=self.remote_path, method=self.method, data=data)
-      return self.result_cls.wrap(result) if self.result_cls else result
-    else:
-      return backend.query(url=self.remote_path, method=self.method, data=data)
+  def __call__(self, backend, data = None, headers = None):
+      return self.call(backend, data = None, headers)
+  def call(self, backend, data = None, headers = None):
+      if isinstance(data, Mapping): data = data.unwrap(sparse = True)
+      if self.root_key:
+          result = backend(self.root_key, url=self.remote_path, method=self.method, data=data, headers=headers)
+          return self.result_cls.wrap(result) if self.result_cls else result
+      else:
+          return backend.query(url=self.remote_path, method=self.method, data=data, headers=headers)
+
+
+class AuthenticatedRemoteProc(object):
+    def __init__(self, remote_path, method, auth_extractor, root_key = None, result_cls = None):
+        super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key = None, result_cls)
+        self.auth_extractor = auth_extractor
+    def __call__(request, data = None):
+        backend = request.backend
+        authToken = self.auth_extractor(request)
+        self.call(backend, data, headers = {'Authorisation-Token':authToken})
 
 
 class Backend(object):
+  standard_headers = {'Content-Type': 'application/json'}
   def __init__(self, location, http_options = {}):
     self.location = location
     self.http_options = http_options
@@ -50,12 +63,14 @@ class Backend(object):
   def query(self, **options):
     h = Http(**self.http_options)
     method = options.get("method", "GET")
+    headers = self.standard_headers.copy()
+    headers.update(options.get('headers', {}))
     endpoint = self.get_endpoint_url(options['url'])
     log.debug("Endpoint: %s, Method: %s", endpoint, method)
     if method == "POST":
       data = simplejson.dumps(options['data'])
       log.debug("DATA: %s", data)
-      resp, content = h.request(endpoint, method=method, body = data, headers={'Content-Type': 'application/json'})
+      resp, content = h.request(endpoint, method=method, body = data, headers=headers)
     else:
       resp, content = h.request(endpoint, method=method )
     log.debug("RESULT: %s", content[:5000])
