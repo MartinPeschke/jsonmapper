@@ -33,8 +33,9 @@ class RemoteProc(object):
 
 
 class Backend(object):
-  def __init__(self, location):
+  def __init__(self, location, http_options = {}):
     self.location = location
+    self.http_options = http_options
   
   def __call__(self, result_key, **options):
     result = self.query(**options)
@@ -47,7 +48,7 @@ class Backend(object):
     return "{}{}".format(self.location, path)
   
   def query(self, **options):
-    h = Http()
+    h = Http(**self.http_options)
     method = options.get("method", "GET")
     endpoint = self.get_endpoint_url(options['url'])
     log.debug("Endpoint: %s, Method: %s", endpoint, method)
@@ -68,9 +69,10 @@ class Backend(object):
 
       
 class VersionedBackend(Backend):
-  def __init__(self, location, version):
+  def __init__(self, location, version, http_options = {}):
     self.location = location
     self.version = version
+    self.http_options = http_options
   def get_endpoint_url(self, path):
     return "{}/{}{}".format(self.location, self.version, path)
   def get_full_path(self, path):
