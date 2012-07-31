@@ -23,9 +23,9 @@ class RemoteProc(object):
     self.method      = method
     self.root_key    = root_key
     self.result_cls  = result_cls  
-  def __call__(self, backend, data = None, headers = None):
+  def __call__(self, backend, data = None, headers = {}):
       return self.call(backend, data, headers)
-  def call(self, backend, data = None, headers = None):
+  def call(self, backend, data = None, headers = {}):
       if isinstance(data, Mapping): data = data.unwrap(sparse = True)
       if self.root_key:
           result = backend(self.root_key, url=self.remote_path, method=self.method, data=data, headers=headers)
@@ -34,14 +34,14 @@ class RemoteProc(object):
           return backend.query(url=self.remote_path, method=self.method, data=data, headers=headers)
 
 
-class AuthenticatedRemoteProc(object):
+class AuthenticatedRemoteProc(RemoteProc):
     def __init__(self, remote_path, method, auth_extractor, root_key = None, result_cls = None):
         super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key, result_cls)
         self.auth_extractor = auth_extractor
-    def __call__(request, data = None):
+    def __call__(self, request, data = None):
         backend = request.backend
         authToken = self.auth_extractor(request)
-        self.call(backend, data, headers = {'Authorisation-Token':authToken})
+        return self.call(backend, data, headers = {'Authorisation-Token':authToken})
 
 
 class Backend(object):

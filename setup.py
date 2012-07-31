@@ -14,7 +14,7 @@ from setuptools import setup
 
 setup(
     name = 'JSONMapperHGMMPFork',
-    version = '0.58',
+    version = '0.59',
     description = "Mapping JSON to objects and vice versa, this is a product of Christopher Lenz and Matthew Good with slight modifications",
     long_description = '',
     author = 'Martin Peschke',
