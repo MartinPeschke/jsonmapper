@@ -35,13 +35,14 @@ class RemoteProc(object):
 
 
 class AuthenticatedRemoteProc(RemoteProc):
-    def __init__(self, remote_path, method, auth_extractor, root_key = None, result_cls = None):
+    def __init__(self, remote_path, method, auth_key, auth_extractor, root_key = None, result_cls = None):
         super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key, result_cls)
+        self.auth_key = auth_key
         self.auth_extractor = auth_extractor
     def __call__(self, request, data = None):
         backend = request.backend
         authToken = self.auth_extractor(request)
-        return self.call(backend, data, headers = {'Authorisation-Token':authToken})
+        return self.call(backend, data, headers = {self.auth_key:authToken})
 
 
 class Backend(object):
