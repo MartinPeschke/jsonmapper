@@ -24,7 +24,7 @@ class RemoteProc(object):
     self.root_key    = root_key
     self.result_cls  = result_cls  
   def __call__(self, backend, data = None, headers = None):
-      return self.call(backend, data = None, headers)
+      return self.call(backend, data, headers)
   def call(self, backend, data = None, headers = None):
       if isinstance(data, Mapping): data = data.unwrap(sparse = True)
       if self.root_key:
@@ -36,7 +36,7 @@ class RemoteProc(object):
 
 class AuthenticatedRemoteProc(object):
     def __init__(self, remote_path, method, auth_extractor, root_key = None, result_cls = None):
-        super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key = None, result_cls)
+        super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key, result_cls)
         self.auth_extractor = auth_extractor
     def __call__(request, data = None):
         backend = request.backend
