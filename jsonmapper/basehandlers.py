@@ -67,15 +67,18 @@ class OneOfState(formencode.validators.OneOf):
       return obj
     def hasCustom(self, request):
       return len(filter(None, map(lambda item: getattr(item, self.custom_attribute, False),self.getItems(request)))) > 0
-    
+
+    def keyToPython(self, value):
+        return value
+
     def _to_python(self, value, state):
         if isinstance(value, dict):
           custom = value.get("custom", None)
-          val = value.get("value", None)
+          val = self.keyToPython(value.get("value", None))
           items = {self.getKey(s):getattr(s, self.custom_attribute, False) for s in self.getItems(state)}
           is_custom = items.get(val, False)
         else:
-          val = value
+          val = self.keyToPython(value)
         self.list = self.getKeys(state)
         if not val in self.list:
             if self.hideList:
@@ -96,6 +99,13 @@ class OneOfStateNoCustom(OneOfState):
     def hasCustom(self, req):
         return False
 
+class OneOfStateInt(OneOfState):
+    def keyToPython(self, value):
+        try:
+            return int(value)
+        except:
+            raise Invalid(self.message('invalid', state), val, state)
+
 
 class DateValidator(formencode.FancyValidator):
   messages = dict(
@@ -113,13 +123,13 @@ class DateValidator(formencode.FancyValidator):
     try:
       value = datetime.strptime(value, self.format)
     except ValueError, e:
-      raise formencode.Invalid(self.message("badFormat", state, format = self.format, value=value), value, state)
+      raise formencode.Invalid(self.message("badFormat", state, format = self.format.replace('%d', 'dd').replace('%m', 'mm').replace('%Y', 'yyyy'), value=value), value, state)
     else: return value
       
 class DecimalValidator(formencode.FancyValidator):
-  messages = {"invalid_amount":'Bitte eine Zahl eingeben',
-        "amount_too_high":"Bitte eine Zahl %(max_amount)s oder kleiner eingeben",
-        "amount_too_low":"Bitte eine Zahl %(min_amount)s oder größer eingeben"
+  messages = {"invalid_amount":_('Bitte eine Zahl eingeben'),
+        "amount_too_high":_("Bitte eine Zahl %(max_amount)s oder kleiner eingeben"),
+        "amount_too_low":_("Bitte eine Zahl %(min_amount)s oder größer eingeben")
       }
   max = None
   min = None

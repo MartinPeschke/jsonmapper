@@ -7,7 +7,7 @@
 <%def name="renderControl(id_name, value, props, default_classes = 'span3')" >
   %if props.html_type == "select":
     <%
-      select_value = value.get("value") if isinstance(value, dict) else value
+      select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value)
       custom = value.get("custom") if isinstance(value, dict) else ""
     %>
     <select class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
@@ -17,7 +17,11 @@
       %for item in props.getItems(request):
         <option value="${props.getKey(item)}" \
             ${'data-entity-custom=1' if getattr(item, props.custom_attribute, False) else ""} \
-            ${"selected=selected" if select_value == props.getKey(item) else ""} >
+            ${"selected=selected" if select_value == props.getKey(item) else ""} \
+            %if props.extractExtra:
+              ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
+            %endif
+            >
               ${props.getValue(item)}</option>
       %endfor
     </select>

@@ -67,7 +67,7 @@ class Backend(object):
     headers = self.standard_headers.copy()
     headers.update(options.get('headers', {}))
     endpoint = self.get_endpoint_url(options['url'])
-    log.debug("Endpoint: %s, Method: %s", endpoint, method)
+    log.debug("Endpoint: %s, Method: %s, Headers: %s", endpoint, method, headers)
     if method == "POST":
       data = simplejson.dumps(options['data'])
       log.debug("DATA: %s", data)
