@@ -18,7 +18,7 @@
         <option value="${props.getKey(item)}" \
             ${'data-entity-custom=1' if getattr(item, props.custom_attribute, False) else ""} \
             ${"selected=selected" if select_value == props.getKey(item) else ""} \
-            %if props.extractExtra:
+            %if hasattr(props,'extractExtra'):
               ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
             %endif
             >
