@@ -1,6 +1,6 @@
 ﻿from formencode.variabledecode import variable_decode
 from formencode.validators import Invalid
-from pyramid.httpexceptions import HTTPNotImplemented, HTTPUnauthorized
+from pyramid.httpexceptions import HTTPNotImplemented, HTTPUnauthorized, HTTPFound
 from pyramid.view import view_config
 from BeautifulSoup import BeautifulSoup
 import formencode
@@ -9,6 +9,9 @@ from babel.numbers import parse_decimal, format_decimal, NumberFormatError
 
 import logging
 log = logging.getLogger(__name__)
+
+class InvalidCSRFToken(Exception):pass
+
 
 class BaseHandler(object):
   def __init__(self, context, request):
@@ -101,6 +104,7 @@ class OneOfStateNoCustom(OneOfState):
 
 class OneOfStateInt(OneOfState):
     def keyToPython(self, value):
+        if value is None: return None
         try:
             return int(value)
         except:
@@ -156,7 +160,6 @@ class FullValidatedFormHandler(object):
       self.result['values'].update([(k,{}) for k in self.schemas.keys()])
       self.result['errors'].update([(k,{}) for k in self.schemas.keys()])
 
-
   @view_config(request_method='GET')
   def GET(self):
     self.request.session.get_csrf_token()
@@ -170,33 +173,26 @@ class FullValidatedFormHandler(object):
 
   @view_config(request_method='POST')
   def POST(self):
-    req = self.request
-    if req.params.get('token') != req.session.get_csrf_token():
-      self.request.session.get_csrf_token()
-      add_globals = getattr(self, "add_globals", None)
-      if(add_globals is not None):
-        self.result = add_globals(self.request, self.result)
-      return self.result
-    return self.validate_form()
+    try:
+        return self.validate_form()
+    except InvalidCSRFToken:
+        add_globals = getattr(self, "add_globals", None)
+        if(add_globals is not None):
+            self.result = add_globals(self.request, self.result)
+        return self.result
 
   def validate_form(self):
     values = variable_decode(self.request.params)
+    schema_id = values['type']
     try:
-      ### determine actual form used in this submission
-      schema_id = values['type']
-      schema = self.schemas[schema_id]()
-    except KeyError, e:
-      raise HTTPNotImplemented("Unexpected submission type!")
-    try:
-      form_result = schema.to_python(values.get(schema_id), state=self.request)
+        resp = self.validate_values(values)
     except Invalid, error:
       log.error(error.error_dict)
       self.result['values'][schema_id] = error.value or {}
       self.result['errors'][schema_id] = error.error_dict or {}
       self.request.response.status_int = 401
     else:
-      ### if on_success returns anything else than a redirect, it must be some validation error
-      resp = schema.on_success(self.request, form_result)
+      ### if validate_values/on_success returns anything else than a redirect, it must be some validation error
       self.result['values'][schema_id] = resp['values']
       self.result['errors'][schema_id] = resp['errors']
       self.request.response.status_int = 401
@@ -204,3 +200,41 @@ class FullValidatedFormHandler(object):
     if(add_globals is not None):
       self.result = add_globals(self.request, self.result)
     return self.result
+
+
+  def validate_json(self,renderTemplates = {}):
+    values = self.request.json_body
+    schema_id = values['type']
+
+    def wrap_errors(errors):
+        map = {}
+        map[schema_id] = errors
+        return formencode.variabledecode.variable_encode(map)
+
+    try:
+        form_result = self.validate_values(values)
+    except Invalid, error:
+        return {'success': False, 'values':error.value or {}, 'errors':wrap_errors(error.unpack_errors())}
+    except HTTPFound, e: # success case
+        return {'redirect': e.location}
+    except InvalidCSRFToken:
+        return {'success':False, 'errorMessage':_("An error occured, please try again.")}
+    else:
+        form_result.setdefault('success', False)
+        form_result['errors'] = wrap_errors(form_result.get('errors', {}))
+        return form_result
+
+
+  def validate_values(self, values, renderTemplates = {}):
+        req = self.request
+        if values.get('token') != req.session.get_csrf_token():
+            raise InvalidCSRFToken()
+        try:
+            ### determine actual form used in this submission
+            schema_id = values['type']
+            schema = self.schemas[schema_id]()
+        except KeyError, e:
+            raise HTTPNotImplemented("Unexpected submission type!")
+        else:
+            form_result = schema.to_python(values.get(schema_id), state=self.request)
+            return schema.on_success(self.request, form_result)

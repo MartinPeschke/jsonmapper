@@ -50,7 +50,7 @@
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""} \
         ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""} \
-        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>${value}</textarea>
+        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>${value or ""}</textarea>
   %else:
       <%
         html_type = props.html_type
@@ -85,9 +85,9 @@
       %if getattr(props, 'html_append', None):
 <span class="add-on">${_(props.html_append)|n}</span></div>
       %endif
-        %if getattr(props, 'html_help', False):
-          <p class="help-block">${_(props.html_help)|n}</p>
-        %endif
+  %endif
+  %if getattr(props, 'html_help', False):
+    <p class="help-block">${_(props.html_help)|n}</p>
   %endif
 </%def>
 
@@ -100,7 +100,7 @@
         <label class="control-label" for="${field_id_name}">${_(getattr(props, "html_label", "&nbsp;"))|n}</label>
        %endif
       <div class="controls ${getattr(props, "controls_class", "")}">
-        ${self.renderControl(id_name = field_id_name, value=values.get(field, ""), props = props, default_classes = default_classes)}
+        ${self.renderControl(id_name = field_id_name, value=values.get(field), props = props, default_classes = default_classes)}
         %if field in errors:
           <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
         %endif
