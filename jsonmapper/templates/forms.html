@@ -100,7 +100,19 @@
         <label class="control-label" for="${field_id_name}">${_(getattr(props, "html_label", "&nbsp;"))|n}</label>
        %endif
       <div class="controls ${getattr(props, "controls_class", "")}">
-        ${self.renderControl(id_name = field_id_name, value=values.get(field), props = props, default_classes = default_classes)}
+        %if hasattr(props, 'widget'):
+
+            <%doc> Try determine caller with the widget definition</%doc>
+            %for callItem in filter(None, caller):
+                %if hasattr(callItem, props.widget):
+                    ${getattr(callItem, props.widget)(field_id_name, values.get(field), props, values, errors, default_classes)|n}
+                    <% break %>
+                %endif
+            %endfor
+
+        %else:
+          ${self.renderControl(id_name = field_id_name, value=values.get(field), props = props, default_classes = default_classes)}
+        %endif
         %if field in errors:
           <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
         %endif
@@ -181,6 +193,11 @@
               ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
             %endif
           %endfor
+          
+          %if hasattr(caller, 'appendix'):
+            ${caller.appendix()}
+          %endif
+        </div>
       </fieldset>
 </%def>
 
@@ -207,11 +224,11 @@
             %>
             
             %if props.repeating == True and isinstance(props, formencode.ForEach):
-                ${self.buildListSubforms(field_id_name, field, props, values, errors)}
+                ${self.buildListSubforms(field_id_name, field, props, values, errors, caller)}
             %elif props.repeating == False and isinstance(props, formencode.Schema):
-              ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
+              ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()), caller)}
             %else:
-              ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
+              ${self.renderFormLine(field_id_name, field, props, values, errors, caller, default_classes = getattr(schema, "default_classes", "span3"))}
             %endif
           %endfor
           
