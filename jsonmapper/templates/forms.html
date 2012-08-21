@@ -224,11 +224,11 @@
             %>
             
             %if props.repeating == True and isinstance(props, formencode.ForEach):
-                ${self.buildListSubforms(field_id_name, field, props, values, errors, caller)}
+                ${self.buildListSubforms(field_id_name, field, props, values, errors)}
             %elif props.repeating == False and isinstance(props, formencode.Schema):
-              ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()), caller)}
+              ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
             %else:
-              ${self.renderFormLine(field_id_name, field, props, values, errors, caller, default_classes = getattr(schema, "default_classes", "span3"))}
+              ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
             %endif
           %endfor
           
