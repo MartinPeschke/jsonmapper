@@ -81,6 +81,7 @@ class OneOfState(formencode.validators.OneOf):
           items = {self.getKey(s):getattr(s, self.custom_attribute, False) for s in self.getItems(state)}
           is_custom = items.get(val, False)
         else:
+          is_custom = False
           val = self.keyToPython(value)
         self.list = self.getKeys(state)
         if not val in self.list:

@@ -139,6 +139,14 @@ class Mapping(object):
           return dict([(k,data[k]) for k in data if data[k] is not None])
         else:
           return self._data
+          
+    def recUnwrap(self, sparse = True):
+        result = {}
+        data=  self._data
+        for k in data: 
+          if data[k] or not sparse:
+            result[k] = k.recUnwrap(sparse) if isinstance(k, Mapping) else data[k]
+        return result
 
     def dumps(self, sparse = False):
       return simplejson.dumps(self.unwrap(sparse))
