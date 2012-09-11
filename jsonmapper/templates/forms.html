@@ -10,6 +10,9 @@
       select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value)
       custom = value.get("custom") if isinstance(value, dict) else ""
     %>
+    %if getattr(props, 'html_append', None):
+      <div class="input-append">
+    %endif
     <select class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
           ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
           id="${id_name}" name="${id_name}.value"
@@ -25,6 +28,9 @@
               ${props.getValue(item)}</option>
       %endfor
     </select>
+      %if getattr(props, 'html_append', None):
+<span class="add-on">${_(props.html_append)|n}</span></div>
+      %endif
     %if props.hasCustom(request):
       <input type="text" class="${getattr(props, 'classes', default_classes)} select-option-custom" \
       ${"required" if getattr(props, "required", False) else ""} name="${id_name}.custom" value="${custom}"/>

@@ -234,8 +234,7 @@ class PictureField(Field):
         if self.startswith("http"):
           return self
         else:
-          g = request.registry.settings["g"]
-          return g.getStaticUrl(self)
+          return request.getStaticUrl(self)
     _to_python = Picture
 
 class DecimalField(Field):
