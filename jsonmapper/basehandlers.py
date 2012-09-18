@@ -24,7 +24,7 @@ _ = lambda s: s
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
   valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
-  valid_attrs = ['size', 'color', 'face', 'title', 'align']
+  valid_attrs = ['size', 'color', 'face', 'title', 'align', "style"]
   def sanitize_html(self, html):
       soup = BeautifulSoup(html)
       for tag in soup.findAll(True):
@@ -71,18 +71,21 @@ class OneOfState(formencode.validators.OneOf):
     def hasCustom(self, request):
       return len(filter(None, map(lambda item: getattr(item, self.custom_attribute, False),self.getItems(request)))) > 0
 
-    def keyToPython(self, value):
+    def keyToPython(self, value, state = None):
+        return value
+
+    def customValueToPython(self, value, state = None):
         return value
 
     def _to_python(self, value, state):
         if isinstance(value, dict):
-          custom = value.get("custom", None)
-          val = self.keyToPython(value.get("value", None))
+          custom = self.customValueToPython(value.get("custom", None), state)
+          val = self.keyToPython(value.get("value", None), state)
           items = {self.getKey(s):getattr(s, self.custom_attribute, False) for s in self.getItems(state)}
           is_custom = items.get(val, False)
         else:
           is_custom = False
-          val = self.keyToPython(value)
+          val = self.keyToPython(value, state)
         self.list = self.getKeys(state)
         if not val in self.list:
             if self.hideList:
@@ -96,8 +99,11 @@ class OneOfState(formencode.validators.OneOf):
                     self.message('notIn', state,
                         items=items, val=val), val, state)
         else:
-          return custom if is_custom and custom else val
-    
+            # breaking change: this was
+            # return custom if is_custom and custom else val
+
+          return custom if is_custom else val
+
     validate_python = formencode.FancyValidator._validate_noop
 class OneOfStateNoCustom(OneOfState):
     def hasCustom(self, req):
@@ -139,6 +145,8 @@ class DecimalValidator(formencode.FancyValidator):
   max = None
   min = None
   def _to_python(self, value, state):
+    if not getattr(self, 'required', False) and not value:
+        return getattr(self, 'if_missing', None)
     try:
       value = parse_decimal(value, locale = state._LOCALE_)
       if self.max and value > self.max:
