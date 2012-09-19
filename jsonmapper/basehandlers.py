@@ -110,7 +110,7 @@ class OneOfStateNoCustom(OneOfState):
         return False
 
 class OneOfStateInt(OneOfState):
-    def keyToPython(self, value):
+    def keyToPython(self, value, state):
         if value is None: return None
         try:
             return int(value)
