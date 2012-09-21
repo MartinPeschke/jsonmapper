@@ -7,7 +7,7 @@
 <%def name="renderControl(id_name, value, props, default_classes = 'span3')" >
   %if props.html_type == "select":
     <%
-      select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value)
+      select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value, request)
       custom = value.get("custom") if isinstance(value, dict) else ""
     %>
     %if getattr(props, 'html_append', None):
