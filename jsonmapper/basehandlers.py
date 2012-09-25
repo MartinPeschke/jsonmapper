@@ -20,7 +20,16 @@ class BaseHandler(object):
 
 
 _ = lambda s: s
-      
+
+
+class FormHeading(object):
+  def __init__(self, html_label, tag = 'legend', classes = ''):
+    self.html_label = html_label
+    self.tag = tag
+    self.classes = classes
+
+
+
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
   valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
