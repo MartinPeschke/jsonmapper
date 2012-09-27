@@ -32,7 +32,7 @@ from datetime import date, datetime, time
 from decimal import Decimal, ROUND_HALF_DOWN
 from time import strptime, struct_time
 
-import mako_render_tools
+import mako_render_tools, routing
 
 
 

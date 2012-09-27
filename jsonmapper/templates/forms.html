@@ -262,9 +262,11 @@
             ${caller.appended()}
           %endif
         </div>
-        <div class="form-actions">
-          ${caller.footer()}
-        </div>
+        %if hasattr(caller, "footer"):
+            <div class="form-actions">
+              ${caller.footer()}
+            </div>
+        %endif
       </fieldset>
     </form>
 </%def>
