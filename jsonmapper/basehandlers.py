@@ -23,12 +23,26 @@ _ = lambda s: s
 
 
 class FormHeading(object):
+  structure = "heading"
   def __init__(self, html_label, tag = 'legend', classes = ''):
     self.html_label = html_label
     self.tag = tag
     self.classes = classes
 
 
+class FormSection(object):
+  structure = "layout"
+  def __init__(self, form_order, tag = 'div', classes = 'view-set'):
+    self.tag = tag
+    self.classes = classes
+    self.form_order = form_order
+  
+class CustomFormElement(object):
+  structure = "widget"
+  def __init__(self, widget):
+    self.widget = widget
+  
+    
 
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
