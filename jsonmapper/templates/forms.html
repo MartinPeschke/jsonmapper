@@ -5,7 +5,33 @@
 
 
 <%def name="renderControl(id_name, value, props, default_classes = 'span3')" >
-  %if props.html_type == "select":
+  %if props.html_type == "simpleselect":
+    <%
+        if not value and hasattr(props, "default"):
+            value = props.default
+    %>
+    %if getattr(props, 'html_append', None):
+        <div class="input-append">
+    %endif
+        <select class="${getattr(props, 'classes', default_classes)}" \
+            ${"required" if getattr(props, "required", False) else ""} \
+            ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+            id="${id_name}" name="${id_name}"
+            ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
+            %for item in props.getItems(request):
+                <option value="${"" if item.getKey() is None else item.getKey()}" ${"selected=selected" if value == item.getKey() else ""} \
+                %if hasattr(props,'extractExtra'):
+                    ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
+                %endif
+            >
+                ${_(item.getValue())|n}</option>
+            %endfor
+        </select>
+        %if getattr(props, 'html_append', None):
+<span class="add-on">${_(props.html_append)|n}</span></div>
+        %endif
+
+  %elif props.html_type == "select":
     <%
       select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value, request)
       custom = value.get("custom") if isinstance(value, dict) else ""

@@ -76,8 +76,11 @@ class Backend(object):
     else:
       resp, content = h.request(endpoint, method=method )
     log.debug("RESULT: %s", content[:5000])
-    result = simplejson.loads(content)
-    if result['status'] != 0: 
+    try:
+        result = simplejson.loads(content)
+    except simplejson.JSONDecodeError, e:
+        raise DBException("Network Error: API has gone away")
+    if result['status'] != 0:
         raise DBException("Status: {status} Reason: {errorMessage}".format(**result))
     elif result.get('dbMessage') or result.get('db_message'):
         raise DBMessage(result.get('dbMessage', result.get('db_message')), result)

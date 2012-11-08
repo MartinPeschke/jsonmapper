@@ -6,6 +6,7 @@ from BeautifulSoup import BeautifulSoup
 import formencode
 from datetime import datetime
 from babel.numbers import parse_decimal, format_decimal, NumberFormatError
+from operator import methodcaller
 
 import logging
 log = logging.getLogger(__name__)
@@ -68,6 +69,64 @@ class SanitizedHTMLString(formencode.validators.String):
       log.error("HTML_SANITIZING_ERROR %s", value)
       raise formencode.Invalid(self.message("invalid_format", state, value = value), value, state)
 
+class Choice(object):
+    def __init__(self, key, label):
+        self.label = label
+        self.key = key
+
+    def getKey(self):
+        return self.key
+
+    def getValue(self):
+        return self.label
+      
+class OneOfChoice(formencode.validators.OneOf):
+    custom_attribute = 'custom'
+    def keyToPython(self, value, state = None):
+        return value
+
+    def getKey(self, item):
+      return item.getKey()
+    def getKeys(self, request):
+        return map(methodcaller("getKey"), self.choices)
+
+    def getValue(self, item):
+        return item.getValue()
+    def getValues(self, request):
+        return map(methodcaller("getValue"), self.choices)
+
+    def hasCustom(self, req):
+        return False
+
+    def getItems(self, request):
+      return self.choices
+    def _to_python(self, value, state):
+        val = self.keyToPython(value, state)
+        self.list = self.getKeys(state)
+        if not val in self.list:
+            if self.hideList:
+                raise Invalid(self.message('invalid', state), val, state)
+            else:
+                try:
+                    items = '; '.join(map(str, self.list))
+                except UnicodeError:
+                    items = '; '.join(map(unicode, self.list))
+                raise Invalid(
+                    self.message('notIn', state,
+                        items=items, val=val), val, state)
+        return val
+
+    validate_python = formencode.FancyValidator._validate_noop
+
+class OneOfChoiceInt(OneOfChoice):
+    def keyToPython(self, value, state):
+        if value is None: return None
+        try:
+            return int(value)
+        except:
+            raise Invalid(self.message('invalid', state), value, state)
+    
+    
 class OneOfState(formencode.validators.OneOf):
     isChoice = True
     list = None
@@ -138,7 +197,7 @@ class OneOfStateInt(OneOfState):
         try:
             return int(value)
         except:
-            raise Invalid(self.message('invalid', state), val, state)
+            raise Invalid(self.message('invalid', state), value, state)
 
 
 class DateValidator(formencode.FancyValidator):
