@@ -25,7 +25,7 @@
               ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
             %endif
             >
-              ${props.getValue(item)}</option>
+              ${_(props.getValue(item))|n}</option>
       %endfor
     </select>
       %if getattr(props, 'html_append', None):
