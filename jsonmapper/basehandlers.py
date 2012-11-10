@@ -24,12 +24,18 @@ _ = lambda s: s
 
 
 class FormHeading(object):
-  structure = "heading"
-  def __init__(self, html_label, tag = 'legend', classes = ''):
-    self.html_label = html_label
-    self.tag = tag
-    self.classes = classes
+    structure = "heading"
+    def __init__(self, html_label, tag = 'legend', classes = '', field_name = None):
+        self.html_label = html_label
+        self.tag = tag
+        self.classes = classes
+        self.field_name = field_name
 
+    def getLabel(self, values):
+        if self.field_name:
+            return self.html_label.format(values.get(self.field_name, ""))
+        else:
+            return self.html_label
 
 class FormSection(object):
   structure = "layout"
@@ -43,7 +49,26 @@ class CustomFormElement(object):
   def __init__(self, widget):
     self.widget = widget
   
-    
+class CombinedElement(object):
+    structure = "combined"
+    suppress_label = False
+    inline_label = True
+    def __init__(self, elements, html_label = None, **kwargs):
+        self.html_label = html_label
+        self.elements = elements
+        for k,v in kwargs.items():
+            setattr(self, k, v)
+
+    def showOutsideLabel(self):
+        return not (self.suppress_label or self.inline_label)
+    def getFields(self, schema):
+        return [schema.fields[field] for field in self.elements]
+    def getErrors(self, errors):
+        return filter(None, [errors.get(f) for f in self.elements])
+    def required(self, schema):
+        return len(filter(None, [getattr(f, "required", None) for f in self.getFields(schema)])) > 0
+
+
 
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}

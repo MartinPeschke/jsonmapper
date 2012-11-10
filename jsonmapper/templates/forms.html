@@ -31,6 +31,31 @@
 <span class="add-on">${_(props.html_append)|n}</span></div>
         %endif
 
+  %elif props.html_type == "simpleradio":
+    <%
+        if not value and hasattr(props, "default"):
+            value = props.default
+        input_right = getattr(props, 'input_right', False)
+    %>
+    %for item in props.getItems(request):
+      %if item.getKey():
+        <div>
+        <label class="radio ${getattr(props, 'classes', default_classes)} ${'right' if input_right else 'left'}">
+          <input type="radio" name="${id_name}" \
+                ${"required" if getattr(props, "required", False) else ""} \
+                ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n} \
+                ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n}
+                ${"checked=checked" if value == item.getKey() else ""}
+                value="${"" if item.getKey() is None else item.getKey()}"  \
+                    %if hasattr(props,'extractExtra'):
+                        ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
+                    %endif
+                >
+            ${_(item.getValue())|n}
+        </label>
+        </div>
+      %endif
+    %endfor
   %elif props.html_type == "select":
     <%
       select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value, request)
@@ -156,8 +181,35 @@
 
 
 
-<%def name="buildLayoutElement(field)">
-  <${field.tag} ${'class="{}"'.format(field.classes) if field.classes else ''|n}">${_(field.html_label)|n}</${field.tag}>
+<%def name="buildLayoutElement(field, values)">
+  <${field.tag} ${'class="{}"'.format(field.classes) if field.classes else ''|n}>${_(field.getLabel(values))|n}</${field.tag}>
+</%def>
+
+<%def name="buildCombinedFormLine(key, schema, widget, values, errors)">
+  <% 
+    fields, local_errors = widget.getFields(schema), widget.getErrors(errors)
+  %>
+
+  <div class="control-group combined ${'required' if widget.required(schema) else ''} ${" error" if len(local_errors) else ""} ${getattr(widget,"classes","")}">
+      %if widget.showOutsideLabel():
+        <label class="control-label">${_(getattr(widget, "html_label", "&nbsp;"))|n}</label>
+       %endif
+      <div class="controls ${getattr(widget, 'controls_class', '')}">
+        %if widget.inline_label:
+          <label class="inline-label">${_(getattr(widget, "html_label", "&nbsp;"))|n}</label>
+        %endif
+        %for i, field in enumerate(widget.elements):
+          <% 
+            props = schema.fields[field]
+            field_id_name = "{}.{}".format(key, field)
+          %>
+          ${self.renderControl(id_name = field_id_name, value=values.get(field), props = props, default_classes = getattr(schema, "default_classes", "span3"))}
+        %endfor
+        %for error in local_errors:
+          <span class="help-inline" generated="true">${error}</span>
+        %endfor
+      </div>
+    </div>
 </%def>
 
 
@@ -207,8 +259,10 @@
         field_id_name = "{}.{}".format(key, field) 
       %>
       ${self.renderFormLine(field_id_name, field, props, values, getattr(errors, "error_dict", dict()), default_classes = default_classes)}
+    %elif hasattr(field, "elements"):
+        ${self.buildCombinedFormLine(key, schema, field, values, errors)}
     %else:
-      ${self.buildLayoutElement(field)}
+      ${self.buildLayoutElement(field, values)}
     %endif
   %endfor
   </${schema.html_tag}>
@@ -236,8 +290,10 @@
                     <% break %>
                 %endif
             %endfor
+          %elif hasattr(field, "elements"):
+            ${self.buildCombinedFormLine(schema.form_id, schema, field, values, errors)}
           %else:
-            ${self.buildLayoutElement(field)}
+            ${self.buildLayoutElement(field, values)}
           %endif
       %elif schema.fields.get(field):
         <% 
@@ -253,9 +309,14 @@
         %endif
       %endif
     %endfor
-    %if hasattr(caller, 'appendix'):
-      ${caller.appendix()}
-    %endif
+    
+    <%doc> Try determine caller with the appendix definition</%doc>
+    %for callItem in caller:
+        %if callItem and hasattr(callItem, 'appendix'):
+            ${callItem.appendix()}
+            <% break %>
+        %endif
+    %endfor
 </%def>
 
 <%def name="buildFormContent(schema, values, errors)">
