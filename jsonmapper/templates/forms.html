@@ -48,7 +48,7 @@
                 ${"checked=checked" if value == item.getKey() else ""}
                 value="${"" if item.getKey() is None else item.getKey()}"  \
                     %if hasattr(props,'extractExtra'):
-                        ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
+                        ${u' '.join([u'{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
                     %endif
                 >
             ${_(item.getValue())|n}
@@ -133,7 +133,7 @@
         value="${"" if html_type == "password" and not getattr(props, "redisplay_password", False) else ("" if value is None else value)}" \
         autocomplete="off"
         ${"required" if getattr(props, "required", False) else ""} \
-        ${'placeholder="{}"'.format(_(props.placeholder)) if getattr(props, "placeholder", False) else ""|n} \
+        ${u'placeholder="{}"'.format(_(props.placeholder)) if getattr(props, "placeholder", False) else ""|n} \
         ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
         ${'{}={}'.format(minpropname, props.min) if getattr(props, 'min', False) else ""}
         ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""}
