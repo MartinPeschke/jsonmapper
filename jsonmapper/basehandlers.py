@@ -25,15 +25,20 @@ _ = lambda s: s
 
 class FormHeading(object):
     structure = "heading"
-    def __init__(self, html_label, tag = 'legend', classes = '', field_name = None):
+    def __init__(self, html_label, tag = 'legend', classes = '', field_names = None):
         self.html_label = html_label
         self.tag = tag
         self.classes = classes
-        self.field_name = field_name
+        if isinstance(field_names, basestring):
+            self.field_names = {field_names:field_names}
+        elif isinstance(field_names, list):
+            self.field_names = {name:name for name in field_names}
+        else:
+            self.field_names = field_names
 
     def getLabel(self, values):
-        if self.field_name:
-            return self.html_label.format(values.get(self.field_name, ""))
+        if self.field_names:
+            return self.html_label.format(**{k:values.get(v) for k,v in self.field_names.items()})
         else:
             return self.html_label
 
