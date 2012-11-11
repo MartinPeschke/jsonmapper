@@ -281,15 +281,17 @@ class FullValidatedFormHandler(object):
       self.result['values'].update([(k,{}) for k in self.schemas.keys()])
       self.result['errors'].update([(k,{}) for k in self.schemas.keys()])
 
+  def pre_fill_values(self, request, result):
+    return result
+
+  def add_globals(self, request, result):
+    return result
+
   @view_config(request_method='GET')
   def GET(self):
     self.request.session.get_csrf_token()
-    add_globals = getattr(self, "add_globals", None)
-    if(add_globals is not None):
-      self.result = add_globals(self.request, self.result)
-    pre_fill_values = getattr(self, "pre_fill_values", None)
-    if(pre_fill_values is not None):
-      self.result = pre_fill_values(self.request, self.result)
+    self.result = self.add_globals(self.request, self.result)
+    self.result = self.pre_fill_values(self.request, self.result)
     return self.result
 
   @view_config(request_method='POST')
@@ -297,9 +299,7 @@ class FullValidatedFormHandler(object):
     try:
         return self.validate_form()
     except InvalidCSRFToken:
-        add_globals = getattr(self, "add_globals", None)
-        if(add_globals is not None):
-            self.result = add_globals(self.request, self.result)
+        self.result = self.add_globals(self.request, self.result)
         return self.result
 
   def validate_form(self):
@@ -317,9 +317,7 @@ class FullValidatedFormHandler(object):
       self.result['values'][schema_id] = resp['values']
       self.result['errors'][schema_id] = resp['errors']
       self.request.response.status_int = 401
-    add_globals = getattr(self, "add_globals", None)
-    if(add_globals is not None):
-      self.result = add_globals(self.request, self.result)
+    self.result = self.add_globals(self.request, self.result)
     return self.result
 
 

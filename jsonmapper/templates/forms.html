@@ -61,10 +61,13 @@
       select_value = props.keyToPython(value.get("value") if isinstance(value, dict) else value, request)
       custom = value.get("custom") if isinstance(value, dict) else ""
     %>
-    %if getattr(props, 'html_append', None):
+    %if hasattr(props, 'html_append'):
       <div class="input-append">
+    %elif hasattr(props, 'html_prepend'):
+      <div class="input-prepend">
+      <span class="add-on">${_(props.html_prepend)|n}</span>\
     %endif
-    <select class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
+<select class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
           ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
           id="${id_name}" name="${id_name}.value"
           ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
@@ -79,8 +82,11 @@
               ${_(props.getValue(item))|n}</option>
       %endfor
     </select>
-      %if getattr(props, 'html_append', None):
-<span class="add-on">${_(props.html_append)|n}</span></div>
+      %if hasattr(props, 'html_append'):
+<span class="add-on">${_(props.html_append)|n}</span>
+      %endif
+      %if hasattr(props, 'html_append') or hasattr(props, 'html_prepend'):
+      </div>
       %endif
     %if props.hasCustom(request):
       <input type="text" class="${getattr(props, 'classes', default_classes)} select-option-custom" \
@@ -123,10 +129,13 @@
           minpropname = 'minlength'
           extras = []
       %>
-      %if getattr(props, 'html_append', None):
+      %if hasattr(props, 'html_append'):
         <div class="input-append">
+      %elif hasattr(props, 'html_prepend'):
+        <div class="input-prepend">
+        <span class="add-on">${_(props.html_prepend)|n}</span>\
       %endif
-      <input class="${classes} ${'focused' if i==0 else ""}" \
+<input class="${classes} ${'focused' if i==0 else ""}" \
         id="${id_name}" \
         name="${id_name}" \
         type="${html_type}" \
@@ -140,9 +149,13 @@
         ${" ".join(('{}="{}"'.format(*extra) for extra in extras))|n}
         ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}
         >\
-      %if getattr(props, 'html_append', None):
-<span class="add-on">${_(props.html_append)|n}</span></div>
+      %if hasattr(props, 'html_append'):
+<span class="add-on">${_(props.html_append)|n}</span>
       %endif
+      %if hasattr(props, 'html_append') or hasattr(props, 'html_prepend'):
+      </div>
+      %endif
+      
   %endif
   %if getattr(props, 'html_help', False):
     <p class="help-block">${_(props.html_help)|n}</p>
