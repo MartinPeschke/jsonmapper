@@ -484,6 +484,13 @@ class ListField(Field):
 
 
     class Proxy(list):
+        def _toJSON(self, sparse = True):
+            return map(self.field._to_json, self)
+        def toJSON(self, sparse = True, stringify = False):
+            if stringify:
+                return simplejson.dumps(self._toJSON(sparse))
+            else:
+                return self._toJSON(sparse = sparse)
 
         def __init__(self, list, field):
             self.list = list

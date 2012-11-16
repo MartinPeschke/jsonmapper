@@ -18,24 +18,34 @@ class DBException(Exception):pass
 
 
 class RemoteProc(object):
-  def __init__(self, remote_path, method, root_key = None, result_cls = None):
+  def __init__(self, remote_path, method, root_key = None, result_cls = None, result_list = False):
     self.remote_path = remote_path
     self.method      = method
     self.root_key    = root_key
-    self.result_cls  = result_cls  
+    self.result_cls  = result_cls
+    self.result_list = result_list
   def __call__(self, backend, data = None, headers = {}):
       return self.call(backend, data, headers)
   def call(self, backend, data = None, headers = {}):
       if isinstance(data, Mapping): data = data.unwrap(sparse = True)
+      result = backend.query(url=self.remote_path, method=self.method, data=data, headers=headers)
       if self.root_key:
-          result = backend(self.root_key, url=self.remote_path, method=self.method, data=data, headers=headers)
-          return self.result_cls.wrap(result) if self.result_cls else result
+          result = result.get(self.root_key)
+          if not self.result_cls:
+            return result
+          elif self.result_list:
+            return map(self.result_cls.wrap, result)
+          else:
+            return self.result_cls.wrap(result)
       else:
-          return backend.query(url=self.remote_path, method=self.method, data=data, headers=headers)
+        if not self.result_cls:
+          return result
+        else:
+          return self.result_cls.wrap(result)
 
 class AuthenticatedRemoteProc(RemoteProc):
-    def __init__(self, remote_path, method, auth_extractor, root_key = None, result_cls = None):
-        super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key, result_cls)
+    def __init__(self, remote_path, method, auth_extractor, root_key = None, result_cls = None, result_list = False):
+        super(AuthenticatedRemoteProc, self).__init__(remote_path, method, root_key, result_cls, result_list)
         self.auth_extractor = auth_extractor
     def __call__(self, request, data = None):
         backend = request.backend
@@ -51,11 +61,7 @@ class Backend(object):
   def __init__(self, location, http_options = {}):
     self.location = location
     self.http_options = http_options
-  
-  def __call__(self, result_key, **options):
-    result = self.query(**options)
-    return result[result_key]
-  
+
   def get_full_path(self, path):
     return path
   

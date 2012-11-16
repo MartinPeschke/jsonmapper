@@ -7,6 +7,7 @@ import formencode
 from datetime import datetime
 from babel.numbers import parse_decimal, format_decimal, NumberFormatError
 from operator import methodcaller
+from collections import OrderedDict
 
 import logging
 log = logging.getLogger(__name__)
@@ -104,32 +105,23 @@ class Choice(object):
         self.label = label
         self.key = key
 
-    def getKey(self):
+    def getKey(self, state = None):
         return self.key
-
-    def getValue(self):
+    def getValue(self, state = None):
         return self.label
       
 class OneOfChoice(formencode.validators.OneOf):
     custom_attribute = 'custom'
     def keyToPython(self, value, state = None):
         return value
-
-    def getKey(self, item):
-      return item.getKey()
-    def getKeys(self, request):
-        return map(methodcaller("getKey"), self.choices)
-
-    def getValue(self, item):
-        return item.getValue()
-    def getValues(self, request):
-        return map(methodcaller("getValue"), self.choices)
-
-    def hasCustom(self, req):
-        return False
-
-    def getItems(self, request):
+    
+    def getKeys(self, state):
+        return map(methodcaller("getKey", state), self.getItems(state))
+    def getValues(self, state):
+        return map(methodcaller("getValue", state), self.getItems(state))
+    def getItems(self, state):
       return self.choices
+    
     def _to_python(self, value, state):
         val = self.keyToPython(value, state)
         self.list = self.getKeys(state)
@@ -145,9 +137,8 @@ class OneOfChoice(formencode.validators.OneOf):
                     self.message('notIn', state,
                         items=items, val=val), val, state)
         return val
-
     validate_python = formencode.FancyValidator._validate_noop
-
+    
 class OneOfChoiceInt(OneOfChoice):
     def keyToPython(self, value, state):
         if value is None: return None
@@ -155,7 +146,34 @@ class OneOfChoiceInt(OneOfChoice):
             return int(value)
         except:
             raise Invalid(self.message('invalid', state), value, state)
-    
+
+class OneOfStateChoice(OneOfChoice):
+    def getItems(self, request):
+      obj = request
+      for key in self.stateKey.split("."): obj = getattr(obj, key)
+      return obj
+
+class ManyOfStateChoice(OneOfChoice):
+    def getItems(self, request):
+        obj = request
+        for key in self.stateKey.split("."): obj = getattr(obj, key)
+        return obj
+    def _to_python(self, value, state):
+        if not isinstance(value, list): value = [value]
+        values = [self.keyToPython(v, state) for v in value]
+        self.list = self.getKeys(state)
+        if len(set(values).difference(self.list)):
+            if self.hideList:
+                raise Invalid(self.message('invalid', state), values, state)
+            else:
+                try:
+                    items = '; '.join(map(str, self.list))
+                except UnicodeError:
+                    items = '; '.join(map(unicode, self.list))
+                raise Invalid(
+                    self.message('notIn', state,
+                        items=items, val=values), val, state)
+        return values
     
 class OneOfState(formencode.validators.OneOf):
     isChoice = True
@@ -270,81 +288,92 @@ class DecimalValidator(formencode.FancyValidator):
     except ValueError, e:
       raise formencode.Invalid(self.message("amount_too_high", state, max_amount = format_decimal(self.max, locale=state._LOCALE_)), value, state)
     else: return value
-      
+
+
+
+class ValidatedFormHandlerMetaClass(type):
+    def __new__(cls, name, bases, dct):
+        if 'schemas' not in dct:
+            if 'form' in dct:
+                form = dct['form']
+                dct['schemas'] = OrderedDict([(form.form_id, form)])
+            elif 'forms' in dct:
+                dct['schemas'] = OrderedDict([(form.form_id, form) for form in dct['forms']])
+        return super(ValidatedFormHandlerMetaClass, cls).__new__(cls, name, bases, dct)
+
 
 class FullValidatedFormHandler(object):
-  def __init__(self, context = None, request = None):
-      self.request = request
-      self.context = context
-      self.result = {'values':{}, 'errors':{}, 'schemas' : self.schemas, 'formencode':formencode}
-      ### generate groups error/value groups for each schema
-      self.result['values'].update([(k,{}) for k in self.schemas.keys()])
-      self.result['errors'].update([(k,{}) for k in self.schemas.keys()])
+    __metaclass__ = ValidatedFormHandlerMetaClass
 
-  def pre_fill_values(self, request, result):
-    return result
+    def __init__(self, context = None, request = None):
+        self.request = request
+        self.context = context
+        self.result = {'values':{}, 'errors':{}, 'schemas' : self.schemas, 'formencode':formencode}
+        ### generate groups error/value groups for each schema
+        self.result['values'].update([(k,{}) for k in self.schemas.keys()])
+        self.result['errors'].update([(k,{}) for k in self.schemas.keys()])
 
-  def add_globals(self, request, result):
-    return result
+    def pre_fill_values(self, request, result):return result
+    def add_globals(self, request, result):return result
+    @view_config(request_method='GET')
+    def GET(self):
+        self.request.session.get_csrf_token()
+        self.result = self.add_globals(self.request, self.result)
+        self.result = self.pre_fill_values(self.request, self.result)
+        return self.result
+    @view_config(request_method='POST')
+    def POST(self):
+        try:
+            return self.validate_form()
+        except InvalidCSRFToken:
+            self.result = self.add_globals(self.request, self.result)
+            return self.result
+    def ajax(self):
+        result = self.validate_json()
+        return result
 
-  @view_config(request_method='GET')
-  def GET(self):
-    self.request.session.get_csrf_token()
-    self.result = self.add_globals(self.request, self.result)
-    self.result = self.pre_fill_values(self.request, self.result)
-    return self.result
-
-  @view_config(request_method='POST')
-  def POST(self):
-    try:
-        return self.validate_form()
-    except InvalidCSRFToken:
+    def validate_form(self):
+        values = variable_decode(self.request.params)
+        schema_id = values['type']
+        try:
+            resp = self.validate_values(values)
+        except Invalid, error:
+          log.error(error.error_dict)
+          self.result['values'][schema_id] = error.value or {}
+          self.result['errors'][schema_id] = error.error_dict or {}
+          self.request.response.status_int = 401
+        else:
+          ### if validate_values/on_success returns anything else than a redirect, it must be some validation error
+          self.result['values'][schema_id] = resp['values']
+          self.result['errors'][schema_id] = resp['errors']
+          self.request.response.status_int = 401
         self.result = self.add_globals(self.request, self.result)
         return self.result
 
-  def validate_form(self):
-    values = variable_decode(self.request.params)
-    schema_id = values['type']
-    try:
-        resp = self.validate_values(values)
-    except Invalid, error:
-      log.error(error.error_dict)
-      self.result['values'][schema_id] = error.value or {}
-      self.result['errors'][schema_id] = error.error_dict or {}
-      self.request.response.status_int = 401
-    else:
-      ### if validate_values/on_success returns anything else than a redirect, it must be some validation error
-      self.result['values'][schema_id] = resp['values']
-      self.result['errors'][schema_id] = resp['errors']
-      self.request.response.status_int = 401
-    self.result = self.add_globals(self.request, self.result)
-    return self.result
+    def validate_json(self,renderTemplates = {}):
+        values = self.request.json_body
+        schema_id = values['type']
+
+        def wrap_errors(errors):
+            map = {}
+            map[schema_id] = errors
+            return formencode.variabledecode.variable_encode(map)
+
+        try:
+            form_result = self.validate_values(values)
+        except Invalid, error:
+            return {'success': False, 'values':error.value or {}, 'errors':wrap_errors(error.unpack_errors())}
+        except HTTPFound, e: # success case
+            return {'redirect': e.location}
+        except InvalidCSRFToken:
+            return {'success':False, 'errorMessage':_("An error occured, please try again.")}
+        else:
+            form_result.setdefault('success', False)
+            form_result['errors'] = wrap_errors(form_result.get('errors', {}))
+            return form_result
 
 
-  def validate_json(self,renderTemplates = {}):
-    values = self.request.json_body
-    schema_id = values['type']
-
-    def wrap_errors(errors):
-        map = {}
-        map[schema_id] = errors
-        return formencode.variabledecode.variable_encode(map)
-
-    try:
-        form_result = self.validate_values(values)
-    except Invalid, error:
-        return {'success': False, 'values':error.value or {}, 'errors':wrap_errors(error.unpack_errors())}
-    except HTTPFound, e: # success case
-        return {'redirect': e.location}
-    except InvalidCSRFToken:
-        return {'success':False, 'errorMessage':_("An error occured, please try again.")}
-    else:
-        form_result.setdefault('success', False)
-        form_result['errors'] = wrap_errors(form_result.get('errors', {}))
-        return form_result
-
-
-  def validate_values(self, values, renderTemplates = {}):
+    def validate_values(self, values, renderTemplates = {}):
         req = self.request
         if values.get('token') != req.session.get_csrf_token():
             raise InvalidCSRFToken()

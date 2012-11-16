@@ -1,4 +1,5 @@
 from operator import attrgetter
+from pyramid.httpexceptions import HTTPFound
 
 STANDARD_VIEW_ATTRS = [{'attr' :"GET", 'request_method' : "GET"}]
 STANDARD_FORM_ATTRS = [{'attr' :"GET", 'request_method' : "GET"}, {'attr' :"POST", 'request_method' : "POST"}]
@@ -11,8 +12,41 @@ class App(object):
         self.name = name
 
 
+class BaseRoute(object):
+    def getRouteName(self, app_name, route_name = None):
+        if not route_name:
+            route_name = self.name
+        return '{}_{}'.format(app_name, route_name)
 
-class FunctionRoute(object):
+    def setup(self, apps, config):
+        raise NotImplementedError()
+
+
+
+def redirectView(toRoute, *args, **kwargs):
+    def redirect(request):
+        request.fwd(toRoute, *args, **kwargs)
+    return redirect
+
+class RedirectRoute(BaseRoute):
+    renderer = None
+    def __init__(self, name, path_exp, to_route, *args, **kwargs):
+        self.name = name
+        self.path_exp = path_exp
+        self.to_route = to_route
+        self.route_args = args
+        self.route_kwargs = kwargs
+
+    def setup(self, apps, config):
+        for app in apps:
+            route_name =self.getRouteName(app.name)
+            config.add_route(route_name, self.path_exp)
+            view = redirectView(self.getRouteName(app.name, self.to_route), *self.route_args, **self.route_kwargs)
+            config.add_view(view, route_name = route_name)
+
+
+
+class FunctionRoute(BaseRoute):
     def __init__(self, name, path_exp, factory, view, renderer, route_attrs = {}):
         self.name = name
         self.path_exp = path_exp
@@ -21,8 +55,6 @@ class FunctionRoute(object):
         self.renderer = renderer
         self.route_attrs = route_attrs
 
-    def getRouteName(self, app_name):
-        return '{}_{}'.format(app_name, self.name)
 
     def setup(self, apps, config):
         for app in apps:

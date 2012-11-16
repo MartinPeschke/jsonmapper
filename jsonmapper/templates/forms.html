@@ -5,7 +5,19 @@
 
 
 <%def name="renderControl(id_name, value, props, default_classes = 'span3')" >
-  %if props.html_type == "simpleselect":
+  %if props.html_type == "checkboxselect":
+    %for item in props.getItems(request):
+      <label class="checkbox">
+        <% key = item.getKey(request) %>
+        <input type="checkbox" value="${'' if key is None else key}" ${'checked=checked' if key in value else ''}
+            ${"required" if getattr(props, "required", False) else ""} \
+            ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+            id="${id_name}" name="${id_name}"
+            ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}/>
+        ${_(item.getValue(request))|n}
+        </label>
+    %endfor
+  %elif props.html_type == "simpleselect":
     <%
         if not value and hasattr(props, "default"):
             value = props.default
@@ -19,18 +31,18 @@
             id="${id_name}" name="${id_name}"
             ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
             %for item in props.getItems(request):
-                <option value="${"" if item.getKey() is None else item.getKey()}" ${"selected=selected" if value == item.getKey() else ""} \
+                <% key = item.getKey(request) %>
+                <option value="${"" if key is None else key}" ${"selected=selected" if value == key else ""} \
                 %if hasattr(props,'extractExtra'):
                     ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
                 %endif
             >
-                ${_(item.getValue())|n}</option>
+                ${_(item.getValue(request))|n}</option>
             %endfor
         </select>
         %if getattr(props, 'html_append', None):
 <span class="add-on">${_(props.html_append)|n}</span></div>
         %endif
-
   %elif props.html_type == "simpleradio":
     <%
         if not value and hasattr(props, "default"):
@@ -107,13 +119,13 @@
     </label>
   %elif props.html_type == "textarea":
       <textarea class="${getattr(props, 'classes', default_classes)} ${'focused' if i==0 else ""}" \
-        id="${id_name}" \
-        name="${id_name}" \
-        ${"required" if getattr(props, "required", False) else ""} \
-        ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
-        ${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""} \
-        ${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""} \
-        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>${value or ""}</textarea>
+id="${id_name}" \
+name="${id_name}" \
+${"required" if getattr(props, "required", False) else ""} \
+${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+${'minlength={}'.format(props.min) if getattr(props, 'min', False) else ""} \
+${'maxlength={}'.format(props.max) if getattr(props, 'max', False) else ""} \
+${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>${value or ""}</textarea>
   %else:
       <%
         html_type = props.html_type
@@ -136,18 +148,18 @@
         <span class="add-on">${_(props.html_prepend)|n}</span>\
       %endif
 <input class="${classes} ${'focused' if i==0 else ""}" \
-        id="${id_name}" \
-        name="${id_name}" \
-        type="${html_type}" \
-        value="${"" if html_type == "password" and not getattr(props, "redisplay_password", False) else ("" if value is None else value)}" \
-        autocomplete="off"
-        ${"required" if getattr(props, "required", False) else ""} \
-        ${u'placeholder="{}"'.format(_(props.placeholder)) if getattr(props, "placeholder", False) else ""|n} \
-        ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
-        ${'{}={}'.format(minpropname, props.min) if getattr(props, 'min', False) else ""}
-        ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""}
-        ${" ".join(('{}="{}"'.format(*extra) for extra in extras))|n}
-        ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}
+id="${id_name}" \
+name="${id_name}" \
+type="${html_type}" \
+value="${"" if html_type == "password" and not getattr(props, "redisplay_password", False) else ("" if value is None else value)}" \
+autocomplete="off" \
+${"required" if getattr(props, "required", False) else ""} \
+${u'placeholder="{}"'.format(_(props.placeholder)) if getattr(props, "placeholder", False) else ""|n} \
+${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+${'{}={}'.format(minpropname, props.min) if getattr(props, 'min', False) else ""} \
+${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""} \
+${" ".join(('{}="{}"'.format(*extra) for extra in extras))|n} \
+${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n} \
         >\
       %if hasattr(props, 'html_append'):
 <span class="add-on">${_(props.html_append)|n}</span>
@@ -155,7 +167,6 @@
       %if hasattr(props, 'html_append') or hasattr(props, 'html_prepend'):
       </div>
       %endif
-      
   %endif
   %if getattr(props, 'html_help', False):
     <p class="help-block">${_(props.html_help)|n}</p>
@@ -230,7 +241,7 @@
 <%def name="buildListItemSubform(key, position, schema, values, errors, id_key = None, default_classes = 'span3', props = None)">
   <${schema.html_tag} class="form-embedded ${schema.html_classes}" ${'id="template-{}"'.format(key.replace(".","-")) if position == 0 else ""|n}>
   %if position > 0:
-    <a class="add-more-delete-link close">×</a>
+    checkbox
   %endif
   
   <span class="control-number">${position+1}</span>
@@ -283,9 +294,9 @@
 
 
 <%def name="prelims(schema)">
-      <input type="hidden" name="type" value="${schema.form_id}"/>
-      <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
-      <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
+  <input type="hidden" name="type" value="${schema.form_id}"/>
+  <input type="hidden" name="furl" value="${schema.getFURL(request)}"/>
+  <input type="hidden" name="token" value="${request.session.get_csrf_token()}"/>
 </%def>
 
 <%def name="buildFormFields(schema, form_order, values, errors)">
@@ -313,9 +324,9 @@
           props = schema.fields[field]
           field_id_name = "{}.{}".format(schema.form_id, field)
         %>
-        %if props.repeating == True and isinstance(props, formencode.ForEach):
+        %if props.repeating == True and isinstance(props, formencode.ForEach) and not hasattr(props, "html_type"):
             ${self.buildListSubforms(field_id_name, field, props, values, errors)}
-        %elif props.repeating == False and isinstance(props, formencode.Schema):
+        %elif props.repeating == False and isinstance(props, formencode.Schema) and not hasattr("html_type"):
           ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
         %else:
           ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
