@@ -326,7 +326,7 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
         %>
         %if props.repeating == True and isinstance(props, formencode.ForEach) and not hasattr(props, "html_type"):
             ${self.buildListSubforms(field_id_name, field, props, values, errors)}
-        %elif props.repeating == False and isinstance(props, formencode.Schema) and not hasattr("html_type"):
+        %elif props.repeating == False and isinstance(props, formencode.Schema) and not hasattr(props, "html_type"):
           ${self.buildSubform(field_id_name, props, values.get(field, dict()), errors.get(field, dict()))}
         %else:
           ${self.renderFormLine(field_id_name, field, props, values, errors, default_classes = getattr(schema, "default_classes", "span3"))}
