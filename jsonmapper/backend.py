@@ -34,7 +34,7 @@ class RemoteProc(object):
           if not self.result_cls:
             return result
           elif self.result_list:
-            return map(self.result_cls.wrap, result)
+            return map(self.result_cls.wrap, result) if result else []
           else:
             return self.result_cls.wrap(result)
       else:

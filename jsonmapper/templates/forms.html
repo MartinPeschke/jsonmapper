@@ -39,7 +39,7 @@
             >
                 ${_(item.getValue(request))|n}</option>
             %endfor
-        </select>
+        </select>\
         %if getattr(props, 'html_append', None):
 <span class="add-on">${_(props.html_append)|n}</span></div>
         %endif
@@ -93,7 +93,7 @@
             >
               ${_(props.getValue(item))|n}</option>
       %endfor
-    </select>
+    </select>\
       %if hasattr(props, 'html_append'):
 <span class="add-on">${_(props.html_append)|n}</span>
       %endif
@@ -160,9 +160,11 @@ ${'{}={}'.format(minpropname, props.min) if getattr(props, 'min', False) else ""
 ${'{}={}'.format(maxpropname, props.max) if getattr(props, 'max', False) else ""} \
 ${" ".join(('{}="{}"'.format(*extra) for extra in extras))|n} \
 ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n} \
-        >\
+        
       %if hasattr(props, 'html_append'):
-<span class="add-on">${_(props.html_append)|n}</span>
+><span class="add-on">${_(props.html_append)|n}</span>
+      %else:
+>
       %endif
       %if hasattr(props, 'html_append') or hasattr(props, 'html_prepend'):
       </div>
