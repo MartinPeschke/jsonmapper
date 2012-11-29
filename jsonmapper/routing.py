@@ -3,6 +3,7 @@ from pyramid.httpexceptions import HTTPFound
 
 STANDARD_VIEW_ATTRS = [{'attr' :"GET", 'request_method' : "GET"}]
 STANDARD_FORM_ATTRS = [{'attr' :"GET", 'request_method' : "GET"}, {'attr' :"POST", 'request_method' : "POST"}]
+JSON_HANDLER_ATTRS = [{'attr' :"ajax", 'request_method' : "POST", 'xhr' : True, 'renderer':'json'}]
 JSON_FORM_ATTRS = [{'attr' :"GET", 'request_method' : "GET"}, {'attr' :"POST", 'request_method' : "POST", 'xhr' : False}, {'attr' :"ajax", 'request_method' : "POST", 'xhr' : True, 'renderer':'json'}]
 JSON_LINK_ATTRS = [{'attr' :"GET", 'request_method' : "GET"}, {'attr' :"ajax", 'request_method' : "POST", 'xhr' : True, 'renderer':"json"}]
 

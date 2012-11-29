@@ -74,8 +74,6 @@ class CombinedElement(object):
     def required(self, schema):
         return len(filter(None, [getattr(f, "required", None) for f in self.getFields(schema)])) > 0
 
-
-
 class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
   valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
@@ -101,14 +99,17 @@ class SanitizedHTMLString(formencode.validators.String):
       raise formencode.Invalid(self.message("invalid_format", state, value = value), value, state)
 
 class Choice(object):
-    def __init__(self, key, label):
+    def __init__(self, key, label, **kwargs):
         self.label = label
         self.key = key
+        for k,v in kwargs.items():
+            setattr(self, k, v)
 
     def getKey(self, state = None):
         return self.key
     def getValue(self, state = None):
         return self.label
+    getLabel = getValue
       
 class OneOfChoice(formencode.validators.OneOf):
     custom_attribute = 'custom'
