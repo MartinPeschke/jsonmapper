@@ -8,37 +8,39 @@
 <%def name="renderControl(id_name, value, props, default_classes = 'span3')" >
   %if props.html_type == "checkboxselect":
     %for item in props.getItems(request):
-      <label class="checkbox">
-        <% key = item.getKey(request) %>
+      <label class="checkbox" ${props.extraAttrs()|n}>
+        <%
+            key = item.getKey(request)
+            value = value or []
+         %>
         <input type="checkbox" value="${'' if key is None else key}" ${'checked=checked' if key in value else ''}
-            ${"required" if getattr(props, "required", False) else ""} \
-            ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
             id="${id_name}" name="${id_name}"
-            ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}/>
-        ${_(item.getValue(request))|n}
+            ${"required" if props.required else ""} \
+            tabindex="${props.tabindex}"\
+            ${props.extractExtra(item)|n}/>
+          ${_(item.getValue(request))|n}
         </label>
     %endfor
   %elif props.html_type == "simpleselect":
     <%
-        if not value and hasattr(props, "default"):
+        if not value and props.default is not None:
             value = props.default
     %>
     %if getattr(props, 'html_append', None):
         <div class="input-append">
     %endif
-        <select class="${getattr(props, 'classes', default_classes)}" \
-            ${"required" if getattr(props, "required", False) else ""} \
-            ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n} \
+        <select class="${props.classes}" \
             id="${id_name}" name="${id_name}"
-            ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n}>
+            ${"required" if props.required else ""} \
+            tabindex="${props.tabindex}"\
+            ${props.extraAttrs()|n}>
             %for item in props.getItems(request):
                 <% key = item.getKey(request) %>
                 <option value="${"" if key is None else key}" ${"selected=selected" if value == key else ""} \
-                %if hasattr(props,'extractExtra'):
-                    ${' '.join(['{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
-                %endif
-            >
-                ${_(item.getValue(request))|n}</option>
+                ${props.extractExtra(item)|n}
+                >
+                  ${_(item.getValue(request))|n}
+                </option>
             %endfor
         </select>\
         %if getattr(props, 'html_append', None):
@@ -46,24 +48,21 @@
         %endif
   %elif props.html_type == "simpleradio":
     <%
-        if not value and hasattr(props, "default"):
+        if not value and props.default is not None:
             value = props.default
-        input_right = getattr(props, 'input_right', False)
     %>
     %for item in props.getItems(request):
       %if item.getKey():
-        <label class="radio ${getattr(props, 'classes', default_classes)} ${'right' if input_right else 'left'}">
+        <label class="radio ${props.classes} ${"selected" if value == item.getKey() else ""}">
           <input type="radio" name="${id_name}" \
-                ${"required" if getattr(props, "required", False) else ""} \
+                ${"required" if props.required else ""} \
+                tabindex="${props.tabindex}"
                 ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n} \
-                ${'tabindex="{}"'.format(props.tabindex) if hasattr(props, "tabindex") else ""|n}
                 ${"checked=checked" if value == item.getKey() else ""}
                 value="${"" if item.getKey() is None else item.getKey()}"  \
-                    %if hasattr(props,'extractExtra'):
-                        ${u' '.join([u'{}={}'.format(k, v) for k,v in props.extractExtra(item)])} \
-                    %endif
+                ${props.extractExtra(item)|n}
                 >
-            ${_(item.getValue())|n}
+            ${_(item.getValue(request))|n}
         </label>
       %endif
     %endfor
@@ -129,12 +128,12 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
       <%
         html_type = props.html_type
         classes = getattr(props, 'classes', default_classes)
-        if html_type == "number":
+        if getattr(props, "is_number_validator", False):
           html_type = 'text'
           classes+= " number"
           maxpropname = 'max'
           minpropname = 'min'
-          extras = [("step", "0.01")]
+          extras = [("step", props.step)]
         else:
           maxpropname = 'maxlength'
           minpropname = 'minlength'
@@ -174,13 +173,24 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
   %endif
 </%def>
 
+
+<%def name="buildLabel(widget, classes = 'control-label', field_id_name = None)">
+  <% label = getattr(widget, "html_label", "&nbsp;") %>
+  %if callable(label):
+    <label class="${classes} ${getattr(props, "label_classes", "")}" ${'for="{}"'.format(field_id_name) if field_id_name else ''|n} >${label(request, widget)|n}</label>
+  %else:
+    <label class="${classes} ${getattr(props, "label_classes", "")}">${_(label)|n}</label>
+  %endif
+</%def>
+
+
 <%def name="renderFormLine(field_id_name, field, props, values, errors, default_classes = 'span3')">
   %if props.html_type == 'hidden':
       <input id="${field_id_name}" name="${field_id_name}" type="${props.html_type}" value="${values.get(field, "")}">
   %else:
     <div class="control-group ${'required' if getattr(props, 'required', False) else ''} ${" error" if field in errors else ""} ${getattr(props,"parent_classes","")}">
       %if not getattr(props, "suppress_label", False):
-        <label class="control-label ${getattr(props, "label_classes", "")}" for="${field_id_name}">${_(getattr(props, "html_label", "&nbsp;"))|n}</label>
+        ${self.buildLabel(props, 'control-label', field_id_name)}
        %endif
       <div class="controls ${getattr(props, "controls_class", "")}">
         %if hasattr(props, 'widget'):
@@ -197,14 +207,12 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
           ${self.renderControl(id_name = field_id_name, value=values.get(field), props = props, default_classes = default_classes)}
         %endif
         %if field in errors:
-          <span class="help-inline" for="${field_id_name}" generated="true">${errors[field]}</span>
+          <span class="help-block" for="${field_id_name}" generated="true">${errors[field]}</span>
         %endif
       </div>
     </div>
   %endif
 </%def>
-
-
 
 <%def name="buildLayoutElement(field, values)">
   <${field.tag} ${'class="{}"'.format(field.classes) if field.classes else ''|n}>${_(field.getLabel(values))|n}</${field.tag}>
@@ -217,11 +225,11 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
 
   <div class="control-group combined ${'required' if widget.required(schema) else ''} ${" error" if len(local_errors) else ""} ${getattr(widget,"classes","")}">
       %if widget.showOutsideLabel():
-        <label class="control-label">${_(getattr(widget, "html_label", "&nbsp;"))|n}</label>
+          ${self.buildLabel(widget)}
        %endif
       <div class="controls ${getattr(widget, 'controls_class', '')}">
         %if widget.inline_label:
-          <label class="inline-label">${_(getattr(widget, "html_label", "&nbsp;"))|n}</label>
+          ${self.buildLabel(widget, 'inline-label')}
         %endif
         %for i, field in enumerate(widget.elements):
           <% 
@@ -347,7 +355,7 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
 <%def name="buildFormContent(schema, values, errors)">
     ${self.prelims(schema)}
     <fieldset>
-      <div class="form-fields clearfix">
+      <div class="form-fields">
         ${self.buildFormFields(schema, schema.form_order, values, errors)}
       </div>
     </fieldset>
@@ -361,7 +369,7 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
    <form method="post" class="${getattr(schema, "html_classes", "form-horizontal form-validated")}" id="${schema.form_id}">
       ${self.prelims(schema)}
       <fieldset>
-        <div class="form-fields clearfix">
+        <div class="form-fields">
           %if hasattr(caller, "header"):
             <legend>${caller.header()}</legend>
           %endif

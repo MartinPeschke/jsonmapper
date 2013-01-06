@@ -15,9 +15,7 @@ class App(object):
 
 class BaseRoute(object):
     def getRouteName(self, app_name, route_name = None):
-        if not route_name:
-            route_name = self.name
-        return '{}_{}'.format(app_name, route_name)
+        return route_name if route_name is not None else self.name
 
     def setup(self, apps, config):
         raise NotImplementedError()

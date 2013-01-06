@@ -113,6 +113,7 @@ class Choice(object):
       
 class OneOfChoice(formencode.validators.OneOf):
     custom_attribute = 'custom'
+    tabindex=5
     def keyToPython(self, value, state = None):
         return value
     
@@ -248,7 +249,7 @@ class OneOfStateInt(OneOfState):
         except:
             raise Invalid(self.message('invalid', state), value, state)
 
-
+formencode.validators.DateValidator
 class DateValidator(formencode.FancyValidator):
   messages = dict(
         badFormat=_('Please enter the date in the form %(format)s'),
@@ -264,14 +265,18 @@ class DateValidator(formencode.FancyValidator):
   def _to_python(self, value, state):
     try:
       value = datetime.strptime(value, self.format)
+      if value.year < 1900:
+        raise formencode.Invalid(self.message('fourDigitYear', state), value, state)
     except ValueError, e:
-      raise formencode.Invalid(self.message("badFormat", state, format = self.format.replace('%d', 'dd').replace('%m', 'mm').replace('%Y', 'yyyy'), value=value), value, state)
+      raise formencode.Invalid(self.message("badFormat", state, format = self.format.replace('%d', 'dd').replace('%m', 'mm').replace('%Y', 'yyyy')), value, state)
     else: return value
       
 class DecimalValidator(formencode.FancyValidator):
-  messages = {"invalid_amount":_('Bitte eine Zahl eingeben'),
-        "amount_too_high":_("Bitte eine Zahl %(max_amount)s oder kleiner eingeben"),
-        "amount_too_low":_("Bitte eine Zahl %(min_amount)s oder größer eingeben")
+  is_number_validator = True
+  step = 0.01
+  messages = {"invalid_amount":_(u'Bitte eine Zahl eingeben'),
+        "amount_too_high":_(u"Bitte eine Zahl %(max_amount)s oder kleiner eingeben"),
+        "amount_too_low":_(u"Bitte eine Zahl %(min_amount)s oder größer eingeben")
       }
   max = None
   min = None
@@ -351,7 +356,7 @@ class FullValidatedFormHandler(object):
         self.result = self.add_globals(self.request, self.result)
         return self.result
 
-    def validate_json(self,renderTemplates = {}):
+    def validate_json(self, renderTemplates = {}):
         values = self.request.json_body
         schema_id = values['type']
 
