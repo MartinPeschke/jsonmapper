@@ -52,14 +52,14 @@
             value = props.default
     %>
     %for item in props.getItems(request):
-      %if item.getKey():
-        <label class="radio ${props.classes} ${"selected" if value == item.getKey() else ""}">
+      %if item.getKey(request):
+        <label class="radio ${props.classes} ${"selected" if value == item.getKey(request) else ""}">
           <input type="radio" name="${id_name}" \
                 ${"required" if props.required else ""} \
                 tabindex="${props.tabindex}"
                 ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", [])))|n} \
-                ${"checked=checked" if value == item.getKey() else ""}
-                value="${"" if item.getKey() is None else item.getKey()}"  \
+                ${"checked=checked" if value == item.getKey(request) else ""}
+                value="${"" if item.getKey(request) is None else item.getKey(request)}"  \
                 ${props.extractExtra(item)|n}
                 >
             ${_(item.getValue(request))|n}
@@ -177,9 +177,9 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
 <%def name="buildLabel(widget, classes = 'control-label', field_id_name = None)">
   <% label = getattr(widget, "html_label", "&nbsp;") %>
   %if callable(label):
-    <label class="${classes} ${getattr(props, "label_classes", "")}" ${'for="{}"'.format(field_id_name) if field_id_name else ''|n} >${label(request, widget)|n}</label>
+    <label class="${classes} ${getattr(widget, "label_classes", "")}" ${'for="{}"'.format(field_id_name) if field_id_name else ''|n} >${label(request, widget)|n}</label>
   %else:
-    <label class="${classes} ${getattr(props, "label_classes", "")}">${_(label)|n}</label>
+    <label class="${classes} ${getattr(widget, "label_classes", "")}">${_(label)|n}</label>
   %endif
 </%def>
 
