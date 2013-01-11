@@ -78,6 +78,10 @@ class SanitizedHTMLString(formencode.validators.String):
   messages = {"invalid_format":'There was some error in your HTML!'}
   valid_tags = ['a','strong', 'em', 'p', 'ul', 'ol', 'li', 'br', 'b', 'i', 'u', 's', 'strike', 'font', 'pre', 'blockquote', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
   valid_attrs = ['size', 'color', 'face', 'title', 'align', "style"]
+
+  def linkAttrs(self, attrs):
+    return [('href', attrs.get('href')), ('target', '_blank')]
+
   def sanitize_html(self, html):
       soup = BeautifulSoup(html)
       for tag in soup.findAll(True):
@@ -87,11 +91,11 @@ class SanitizedHTMLString(formencode.validators.String):
               tag.attrs = [attr for attr in tag.attrs if attr[0].lower() in self.valid_attrs]
           else:
               attrs = dict(tag.attrs)
-              tag.attrs = [('href', attrs.get('href')), ('target', '_blank')]
+              tag.attrs = self.linkAttrs(attrs)
       val = soup.renderContents()
       return val.decode("utf-8")
   def _to_python(self, value, state):
-    value = super(self.__class__, self)._to_python(value, state)
+    value = super(SanitizedHTMLString, self)._to_python(value, state)
     try:
       return self.sanitize_html(value)
     except Exception, e:

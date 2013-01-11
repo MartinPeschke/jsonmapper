@@ -186,7 +186,7 @@ ${" ".join(('{}="{}"'.format(*extra) for extra in getattr(props, "extra_attrs", 
 
 <%def name="renderFormLine(field_id_name, field, props, values, errors, default_classes = 'span3')">
   %if props.html_type == 'hidden':
-      <input id="${field_id_name}" name="${field_id_name}" type="${props.html_type}" value="${values.get(field, "")}">
+      <input id="${field_id_name}" name="${field_id_name}" type="${props.html_type}" value="${values.get(field, getattr(props, 'default', ''))}">
   %else:
     <div class="control-group ${'required' if getattr(props, 'required', False) else ''} ${" error" if field in errors else ""} ${getattr(props,"parent_classes","")}">
       %if not getattr(props, "suppress_label", False):
