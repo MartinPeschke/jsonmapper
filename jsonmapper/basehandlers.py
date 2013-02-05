@@ -356,9 +356,16 @@ class FullValidatedFormHandler(object):
           self.request.response.status_int = 401
         else:
           ### if validate_values/on_success returns anything else than a redirect, it must be some validation error
-          self.result['values'][schema_id] = resp['values']
-          self.result['errors'][schema_id] = resp['errors']
-          self.request.response.status_int = 401
+            if resp.get('message'):
+                self.request.session.flash(GenericSuccessMessage(resp.get('message')), 'generic_messages')
+            if resp.get('redirect'):
+                self.request.fwd_raw(resp.get('redirect'))
+            if resp.get('success', False):
+                self.request.rld()
+
+            self.result['values'][schema_id] = resp.get('values', values)
+            self.result['errors'][schema_id] = resp['errors']
+            self.request.response.status_int = 401
         self.result = self.add_globals(self.request, self.result)
         return self.result
 
