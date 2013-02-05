@@ -344,7 +344,9 @@ class FullValidatedFormHandler(object):
 
     def validate_form(self):
         values = variable_decode(self.request.params)
-        schema_id = values['type']
+        schema_id = values.get('type', None)
+        if not schema_id: self.request.rld()
+
         try:
             resp = self.validate_values(values)
         except Invalid, error:
@@ -362,7 +364,8 @@ class FullValidatedFormHandler(object):
 
     def validate_json(self, renderTemplates = {}):
         values = self.request.json_body
-        schema_id = values['type']
+        schema_id = values.get('type', None)
+        if not schema_id: {'redirect':self.request.url}
 
         def wrap_errors(errors):
             map = {}
