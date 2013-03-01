@@ -9,6 +9,8 @@ from babel.numbers import parse_decimal, format_decimal, NumberFormatError
 from operator import methodcaller
 from collections import OrderedDict
 
+from jsonmapper.messages import GenericSuccessMessage
+
 import logging
 log = logging.getLogger(__name__)
 
