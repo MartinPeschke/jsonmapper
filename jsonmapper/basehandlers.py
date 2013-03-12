@@ -15,6 +15,7 @@ import logging
 log = logging.getLogger(__name__)
 
 class InvalidCSRFToken(Exception):pass
+class NonAjaxRequest(Exception):pass
 
 
 class BaseHandler(object):
@@ -372,7 +373,10 @@ class FullValidatedFormHandler(object):
         return self.result
 
     def validate_json(self, renderTemplates = {}):
-        values = self.request.json_body
+        try:
+            values = self.request.json_body
+        except ValueError:
+            raise NonAjaxRequest(e.message)
         schema_id = values.get('type', None)
         if not schema_id: {'redirect':self.request.url}
 
