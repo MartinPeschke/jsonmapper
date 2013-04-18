@@ -2,6 +2,7 @@
 from formencode.validators import Invalid
 from pyramid.httpexceptions import HTTPNotImplemented, HTTPUnauthorized, HTTPFound
 from pyramid.view import view_config
+from pyramid.response import Response
 from BeautifulSoup import BeautifulSoup
 import formencode
 from datetime import datetime
@@ -359,8 +360,10 @@ class FullValidatedFormHandler(object):
           self.request.response.status_int = 401
         else:
           ### if validate_values/on_success returns anything else than a redirect, it must be some validation error
+            if isinstance(resp, Response):
+               return resp
             if resp.get('message'):
-                self.request.session.flash(GenericSuccessMessage(resp.get('message')), 'generic_messages')
+			   self.request.session.flash(GenericSuccessMessage(resp.get('message')), 'generic_messages')
             if resp.get('redirect'):
                 self.request.fwd_raw(resp.get('redirect'))
             if resp.get('success', False):
