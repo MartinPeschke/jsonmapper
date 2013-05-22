@@ -363,7 +363,7 @@ class FullValidatedFormHandler(object):
             if isinstance(resp, Response):
                return resp
             if resp.get('message'):
-			   self.request.session.flash(GenericSuccessMessage(resp.get('message')), 'generic_messages')
+                self.request.session.flash(GenericSuccessMessage(resp.get('message')), 'generic_messages')
             if resp.get('redirect'):
                 self.request.fwd_raw(resp.get('redirect'))
             if resp.get('success', False):
